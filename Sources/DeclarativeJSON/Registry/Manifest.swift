@@ -63,18 +63,12 @@ public struct Manifest {
 
     private static func json(_ type: PropertyType) -> [String: JSONValue] {
         switch type {
-        case .number: return ["type": .string("number")]
-        case .integer: return ["type": .string("integer")]
-        case .bool: return ["type": .string("bool")]
-        case .string: return ["type": .string("string")]
-        case .url: return ["type": .string("url")]
-        case .color: return ["type": .string("color")]
-        case .font: return ["type": .string("font")]
-        case .insets: return ["type": .string("insets")]
+        case .number, .integer, .bool, .string, .url, .color, .font, .insets:
+            return ["type": .string(type.name)]
         case .oneOf(let values):
-            return ["type": .string("oneOf"), "values": .array(values.map(JSONValue.string))]
+            return ["type": .string(type.name), "values": .array(values.map(JSONValue.string))]
         case .object(let fields):
-            return ["type": .string("object"), "properties": .object(fields.mapValues { .object(json($0)) })]
+            return ["type": .string(type.name), "properties": .object(fields.mapValues { .object(json($0)) })]
         }
     }
 }

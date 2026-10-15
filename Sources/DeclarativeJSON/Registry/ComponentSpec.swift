@@ -16,6 +16,22 @@ public indirect enum PropertyType: Equatable, Sendable {
     case oneOf([String])
     /// An object with these keys, as for a modifier with labeled arguments.
     case object([String: PropertyType])
+
+    /// The name of the type in the manifest.
+    public var name: String {
+        switch self {
+        case .number: return "number"
+        case .integer: return "integer"
+        case .bool: return "bool"
+        case .string: return "string"
+        case .url: return "url"
+        case .color: return "color"
+        case .font: return "font"
+        case .insets: return "insets"
+        case .oneOf: return "oneOf"
+        case .object: return "object"
+        }
+    }
 }
 
 /// A property a component accepts.

@@ -1,16 +1,18 @@
+import UIKit
 import XCTest
 @testable import DeclarativeJSON
 
+@MainActor
 final class ManifestTests: XCTestCase {
 
     /// manifest.json at the root of the repository is what the backend reads.
     /// When it no longer matches the code, this test rewrites it and fails, so
     /// that the change shows in the diff.
-    func testTheCheckedInManifestMatchesTheStandardComponents() throws {
+    func testTheCheckedInManifestMatchesTheStandardRegistry() throws {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("manifest.json")
-        let generated = try Manifest(components: ComponentSpec.standard).encoded() + Data("\n".utf8)
+        let generated = try ComponentRegistry<UIView>.standard.manifest.encoded() + Data("\n".utf8)
         let checkedIn = try? Data(contentsOf: url)
 
         if checkedIn != generated {

@@ -11,6 +11,18 @@ public struct Issue: Equatable, Sendable, CustomStringConvertible {
         /// A section `layout` this version does not know. The section is laid
         /// out as a list.
         case unknownLayout(String)
+        /// A node type the registry does not know. It is shown as an empty view.
+        case unknownType(String)
+        /// A property, or an event, the component does not accept. It is ignored.
+        case unknownProperty(String)
+        /// A `$` reference in a property that takes only a constant. The
+        /// property is ignored.
+        case referenceNotAccepted(String)
+        /// Children of a component that has none. They are ignored.
+        case unexpectedChildren
+        /// A property value of the wrong type or out of range, written or
+        /// referenced. The property is treated as missing.
+        case typeMismatch(property: String, expected: PropertyType)
     }
 
     public let kind: Kind
@@ -30,6 +42,16 @@ public struct Issue: Equatable, Sendable, CustomStringConvertible {
             return "\(path).children: not an array"
         case .unknownLayout(let layout):
             return "\(path).layout: unknown layout \"\(layout)\"; shown as a list"
+        case .unknownType(let type):
+            return "\(path): unknown type \"\(type)\"; shown as an empty view"
+        case .unknownProperty(let name):
+            return "\(path).\(name): not accepted by this component; ignored"
+        case .referenceNotAccepted(let name):
+            return "\(path).\(name): takes only a constant, not a reference; ignored"
+        case .unexpectedChildren:
+            return "\(path).children: this component has no children; ignored"
+        case .typeMismatch(let name, let expected):
+            return "\(path).\(name): not a valid \(expected.name); treated as missing"
         }
     }
 }
