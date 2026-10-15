@@ -1,0 +1,15 @@
+# Local agent context and planning documents
+/AGENTS.md
+/docs/superpowers/
+
+# Swift Package Manager and Xcode build artifacts
+/.build/
+/.swiftpm/
+/DerivedData/
+*.xcresult
+xcuserdata/
+*.xcuserstate
+.DS_Store
+
+# Resolved dependency versions are the consumer's business, not the library's
+/Package.resolved
