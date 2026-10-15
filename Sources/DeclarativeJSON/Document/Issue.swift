@@ -2,8 +2,8 @@ import Foundation
 
 /// A problem in a document that does not stop the page from showing: the
 /// part at fault is left out or replaced, and the rest is shown.
-public struct Issue: Equatable, Sendable, CustomStringConvertible {
-    public enum Kind: Equatable, Sendable {
+public struct Issue: Hashable, Sendable, CustomStringConvertible {
+    public enum Kind: Hashable, Sendable {
         /// A node that is not an object with a string `type`. It is left out.
         case invalidNode
         /// `children` that is not an array. The node gets no children.
@@ -33,6 +33,11 @@ public struct Issue: Equatable, Sendable, CustomStringConvertible {
         /// A built-in action the app has not registered a handler for, such as
         /// `navigate`. It does nothing.
         case unhandledAction(String)
+        /// A section or item `id` used before in the page. It is left out.
+        case duplicateID(String)
+        /// An item or header whose template the document does not have. It is
+        /// left out.
+        case unknownTemplate(String)
     }
 
     public let kind: Kind
@@ -70,6 +75,10 @@ public struct Issue: Equatable, Sendable, CustomStringConvertible {
             return "\(path).\(name): missing; the action does nothing"
         case .unhandledAction(let name):
             return "\(path): no handler is registered for \"\(name)\"; it does nothing"
+        case .duplicateID(let id):
+            return "\(path).id: \"\(id)\" is already used in the page; left out"
+        case .unknownTemplate(let name):
+            return "\(path).template: no template \"\(name)\"; left out"
         }
     }
 }

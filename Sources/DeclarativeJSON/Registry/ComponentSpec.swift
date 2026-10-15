@@ -1,7 +1,7 @@
 import Foundation
 
 /// The kind of value a property takes.
-public indirect enum PropertyType: Equatable, Sendable {
+public indirect enum PropertyType: Hashable, Sendable {
     case number
     case integer
     case bool
