@@ -23,7 +23,6 @@ final class DependencyTests: XCTestCase {
         XCTAssertEqual(stack.spacing, 4)
     }
 
-    // iOS 13 API only: no cell registration, no list configuration.
     func testACompositionalListWithSelfSizingCellsLaysOutInTheTestProcess() {
         let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44))
         let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [NSCollectionLayoutItem(layoutSize: size)])

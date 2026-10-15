@@ -44,7 +44,7 @@ let controller = DocumentViewController(document: document, components: .standar
 
 ## 需求
 
-- iOS 13+
+- iOS 14+
 - Swift 5.9+
 
 ## 安裝

@@ -44,7 +44,7 @@ A `$` value refers to a key of the item's `data`. Everything else is a constant.
 
 ## Requirements
 
-- iOS 13+
+- iOS 14+
 - Swift 5.9+
 
 ## Installation
