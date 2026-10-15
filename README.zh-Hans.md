@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/declarative-json-dark.svg">
+    <img src="docs/images/declarative-json-light.svg" alt="DeclarativeJSON — 由 JSON 搭建的 UIKit 服务端驱动列表。" width="850">
+  </picture>
+</p>
+
 # DeclarativeJSON
 
 [English](README.md) | **简体中文** | [繁體中文](README.zh-Hant.md)
