@@ -14,11 +14,11 @@ extension ComponentSpec {
         ComponentSpec("vstack", properties: [
             "alignment": PropertySpec(horizontalAlignment),
             "spacing": PropertySpec(.number),
-        ], acceptsChildren: true),
+        ], events: [.onTap], acceptsChildren: true),
         ComponentSpec("hstack", properties: [
             "alignment": PropertySpec(verticalAlignment),
             "spacing": PropertySpec(.number),
-        ], acceptsChildren: true),
+        ], events: [.onTap], acceptsChildren: true),
         ComponentSpec("vscroll", properties: [
             "alignment": PropertySpec(horizontalAlignment),
             "spacing": PropertySpec(.number),

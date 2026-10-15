@@ -38,11 +38,13 @@ extension ComponentRegistry where View == UIView {
                 VStack { context.children }
                     .onValue(context.choice("alignment", horizontalAlignments)) { $0.alignment($1 ?? .center) }
                     .onValue(context.number("spacing")) { $0.spacing(CGFloat($1 ?? 0)) }
+                    .onTap(context)
             },
             "hstack": { context in
                 HStack { context.children }
                     .onValue(context.choice("alignment", verticalAlignments)) { $0.alignment($1 ?? .center) }
                     .onValue(context.number("spacing")) { $0.spacing(CGFloat($1 ?? 0)) }
+                    .onTap(context)
             },
             "vscroll": { context in
                 VScroll { context.children }
@@ -179,6 +181,25 @@ extension ComponentRegistry where View == UIView {
         return registry
     }
 }
+
+@MainActor
+private extension UIStackView {
+
+    /// Runs the stack's `onTap` when anywhere in it is tapped, except on a
+    /// control inside it, which keeps its own taps. With an
+    /// `accessibilityLabel`, VoiceOver reads the stack as one button.
+    func onTap(_ context: BuildContext<UIView>) -> Self {
+        guard let action = context.action(.onTap) else { return self }
+        accessibilityTraits.insert(.button)
+        isAccessibilityElement = context.node.properties["accessibilityLabel"] != nil
+        return onEvent(action, { $0.gesturePublisher(makeTapRecognizer()) })
+    }
+}
+
+/// Makes the recognizer of a stack's `onTap`. Tests replace it with one whose
+/// action they can send, which a test process without touches cannot.
+@MainActor
+var makeTapRecognizer: () -> UITapGestureRecognizer = { UITapGestureRecognizer() }
 
 /// An image in the app's asset catalog, or else an SF Symbol.
 private func namedImage(_ name: String) -> UIImage? {

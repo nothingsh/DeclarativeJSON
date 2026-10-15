@@ -7,14 +7,14 @@
     },
     "entry": {
       "type": "hstack", "spacing": 14, "padding": { "horizontal": 20, "vertical": 12 },
+      "accessibilityLabel": "$title", "onTap": { "action": "navigate", "url": "$url" },
       "children": [
         { "type": "image", "image": "$icon", "tintColor": "systemBlue", "contentMode": "scaleAspectFit", "width": 28, "height": 28 },
         { "type": "vstack", "alignment": "leading", "spacing": 2, "children": [
           { "type": "label", "text": "$title", "font": "headline" },
           { "type": "label", "text": "$detail", "font": "subheadline", "textColor": "secondaryLabel", "numberOfLines": 0 }
         ]},
-        { "type": "button", "title": "Open", "accessibilityLabel": "$title",
-          "onTap": { "action": "navigate", "url": "$url" } }
+        { "type": "image", "image": "chevron.right", "tintColor": "tertiaryLabel", "contentMode": "scaleAspectFit", "width": 12, "height": 18 }
       ]
     }
   },
