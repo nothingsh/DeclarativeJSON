@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/declarative-json-dark.svg">
+    <img src="docs/images/declarative-json-light.svg" alt="DeclarativeJSON — Server-driven lists for UIKit, built from JSON." width="850">
+  </picture>
+</p>
+
 # DeclarativeJSON
 
 **English** | [简体中文](README.zh-Hans.md) | [繁體中文](README.zh-Hant.md)
