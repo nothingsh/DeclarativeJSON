@@ -16,7 +16,7 @@ Server-driven lists for UIKit. A JSON document names the cell templates, the ite
         { "type": "image", "url": "$image", "width": 56, "height": 56, "cornerRadius": 8 },
         { "type": "vstack", "spacing": 4, "children": [
           { "type": "label", "text": "$title", "font": "headline" },
-          { "type": "label", "text": "$subtitle", "font": "footnote", "color": "secondaryLabel", "lines": 2 }
+          { "type": "label", "text": "$subtitle", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 2 }
         ]},
         { "type": "spacer" },
         { "type": "button", "title": "$price", "onTap": { "action": "navigate", "url": "$detailURL" } }

@@ -31,3 +31,17 @@ extension JSONValue: Decodable {
         }
     }
 }
+
+extension JSONValue: Encodable {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .null: try container.encodeNil()
+        case .bool(let bool): try container.encode(bool)
+        case .number(let number): try container.encode(number)
+        case .string(let string): try container.encode(string)
+        case .array(let array): try container.encode(array)
+        case .object(let object): try container.encode(object)
+        }
+    }
+}

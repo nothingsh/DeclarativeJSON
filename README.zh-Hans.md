@@ -16,7 +16,7 @@ UIKit 的服务端驱动列表。一份 JSON 文档写明 cell 的模板、条�
         { "type": "image", "url": "$image", "width": 56, "height": 56, "cornerRadius": 8 },
         { "type": "vstack", "spacing": 4, "children": [
           { "type": "label", "text": "$title", "font": "headline" },
-          { "type": "label", "text": "$subtitle", "font": "footnote", "color": "secondaryLabel", "lines": 2 }
+          { "type": "label", "text": "$subtitle", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 2 }
         ]},
         { "type": "spacer" },
         { "type": "button", "title": "$price", "onTap": { "action": "navigate", "url": "$detailURL" } }

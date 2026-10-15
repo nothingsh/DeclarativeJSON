@@ -1,0 +1,440 @@
+{
+  "common" : {
+    "accessibilityIdentifier" : {
+      "reference" : true,
+      "type" : "string"
+    },
+    "accessibilityLabel" : {
+      "reference" : true,
+      "type" : "string"
+    },
+    "alpha" : {
+      "reference" : true,
+      "type" : "number"
+    },
+    "aspectRatio" : {
+      "reference" : true,
+      "type" : "number"
+    },
+    "background" : {
+      "reference" : true,
+      "type" : "color"
+    },
+    "border" : {
+      "properties" : {
+        "color" : {
+          "type" : "color"
+        },
+        "width" : {
+          "type" : "number"
+        }
+      },
+      "reference" : true,
+      "type" : "object"
+    },
+    "clipsToBounds" : {
+      "reference" : true,
+      "type" : "bool"
+    },
+    "cornerRadius" : {
+      "reference" : true,
+      "type" : "number"
+    },
+    "height" : {
+      "reference" : true,
+      "type" : "number"
+    },
+    "isHidden" : {
+      "reference" : true,
+      "type" : "bool"
+    },
+    "isVisible" : {
+      "reference" : true,
+      "type" : "bool"
+    },
+    "padding" : {
+      "reference" : true,
+      "type" : "insets"
+    },
+    "tintColor" : {
+      "reference" : true,
+      "type" : "color"
+    },
+    "width" : {
+      "reference" : true,
+      "type" : "number"
+    }
+  },
+  "components" : {
+    "activity" : {
+      "children" : false,
+      "events" : [
+
+      ],
+      "properties" : {
+        "color" : {
+          "reference" : true,
+          "type" : "color"
+        },
+        "hidesWhenStopped" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "isAnimating" : {
+          "reference" : true,
+          "type" : "bool"
+        }
+      }
+    },
+    "button" : {
+      "children" : false,
+      "events" : [
+        "onTap"
+      ],
+      "properties" : {
+        "image" : {
+          "reference" : true,
+          "type" : "string"
+        },
+        "isEnabled" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "title" : {
+          "reference" : true,
+          "type" : "string"
+        },
+        "titleColor" : {
+          "reference" : true,
+          "type" : "color"
+        }
+      }
+    },
+    "hscroll" : {
+      "children" : true,
+      "events" : [
+
+      ],
+      "properties" : {
+        "alignment" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "top",
+            "center",
+            "bottom",
+            "firstTextBaseline",
+            "lastTextBaseline",
+            "fill"
+          ]
+        },
+        "bounces" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "showsIndicators" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "spacing" : {
+          "reference" : true,
+          "type" : "number"
+        }
+      }
+    },
+    "hstack" : {
+      "children" : true,
+      "events" : [
+
+      ],
+      "properties" : {
+        "alignment" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "top",
+            "center",
+            "bottom",
+            "firstTextBaseline",
+            "lastTextBaseline",
+            "fill"
+          ]
+        },
+        "spacing" : {
+          "reference" : true,
+          "type" : "number"
+        }
+      }
+    },
+    "image" : {
+      "children" : false,
+      "events" : [
+
+      ],
+      "properties" : {
+        "contentMode" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "scaleToFill",
+            "scaleAspectFit",
+            "scaleAspectFill",
+            "center"
+          ]
+        },
+        "image" : {
+          "reference" : true,
+          "type" : "string"
+        },
+        "url" : {
+          "reference" : true,
+          "type" : "url"
+        }
+      }
+    },
+    "label" : {
+      "children" : false,
+      "events" : [
+
+      ],
+      "properties" : {
+        "adjustsFontSizeToFitWidth" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "font" : {
+          "reference" : true,
+          "type" : "font"
+        },
+        "numberOfLines" : {
+          "reference" : true,
+          "type" : "integer"
+        },
+        "text" : {
+          "reference" : true,
+          "type" : "string"
+        },
+        "textAlignment" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "natural",
+            "left",
+            "center",
+            "right",
+            "justified"
+          ]
+        },
+        "textColor" : {
+          "reference" : true,
+          "type" : "color"
+        }
+      }
+    },
+    "progress" : {
+      "children" : false,
+      "events" : [
+
+      ],
+      "properties" : {
+        "progress" : {
+          "reference" : true,
+          "type" : "number"
+        },
+        "progressTintColor" : {
+          "reference" : true,
+          "type" : "color"
+        },
+        "trackTintColor" : {
+          "reference" : true,
+          "type" : "color"
+        }
+      }
+    },
+    "slider" : {
+      "children" : false,
+      "events" : [
+        "onChange"
+      ],
+      "properties" : {
+        "isEnabled" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "maximumTrackTintColor" : {
+          "reference" : true,
+          "type" : "color"
+        },
+        "maximumValue" : {
+          "reference" : true,
+          "type" : "number"
+        },
+        "minimumTrackTintColor" : {
+          "reference" : true,
+          "type" : "color"
+        },
+        "minimumValue" : {
+          "reference" : true,
+          "type" : "number"
+        },
+        "value" : {
+          "reference" : true,
+          "type" : "number"
+        }
+      }
+    },
+    "spacer" : {
+      "children" : false,
+      "events" : [
+
+      ],
+      "properties" : {
+        "minLength" : {
+          "reference" : false,
+          "type" : "number"
+        }
+      }
+    },
+    "switch" : {
+      "children" : false,
+      "events" : [
+        "onChange"
+      ],
+      "properties" : {
+        "isEnabled" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "isOn" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "onTintColor" : {
+          "reference" : true,
+          "type" : "color"
+        }
+      }
+    },
+    "textfield" : {
+      "children" : false,
+      "events" : [
+        "onChange",
+        "onReturn"
+      ],
+      "properties" : {
+        "font" : {
+          "reference" : true,
+          "type" : "font"
+        },
+        "isEnabled" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "isSecureTextEntry" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "keyboardType" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "default",
+            "emailAddress",
+            "numberPad",
+            "decimalPad",
+            "phonePad",
+            "URL"
+          ]
+        },
+        "placeholder" : {
+          "reference" : true,
+          "type" : "string"
+        },
+        "returnKeyType" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "default",
+            "go",
+            "next",
+            "done",
+            "search",
+            "send"
+          ]
+        },
+        "text" : {
+          "reference" : true,
+          "type" : "string"
+        },
+        "textAlignment" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "natural",
+            "left",
+            "center",
+            "right",
+            "justified"
+          ]
+        },
+        "textColor" : {
+          "reference" : true,
+          "type" : "color"
+        }
+      }
+    },
+    "vscroll" : {
+      "children" : true,
+      "events" : [
+
+      ],
+      "properties" : {
+        "alignment" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "leading",
+            "center",
+            "trailing",
+            "fill"
+          ]
+        },
+        "bounces" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "showsIndicators" : {
+          "reference" : true,
+          "type" : "bool"
+        },
+        "spacing" : {
+          "reference" : true,
+          "type" : "number"
+        }
+      }
+    },
+    "vstack" : {
+      "children" : true,
+      "events" : [
+
+      ],
+      "properties" : {
+        "alignment" : {
+          "reference" : true,
+          "type" : "oneOf",
+          "values" : [
+            "leading",
+            "center",
+            "trailing",
+            "fill"
+          ]
+        },
+        "spacing" : {
+          "reference" : true,
+          "type" : "number"
+        }
+      }
+    }
+  },
+  "v" : 1
+}
