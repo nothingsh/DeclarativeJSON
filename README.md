@@ -121,9 +121,9 @@ The property names are those of the DeclarativeUIKit modifiers that set them. A 
 
 | Type | Properties | Events |
 | --- | --- | --- |
-| `vstack` | `alignment` (`leading`, `center`, `trailing`, `fill`), `spacing` | |
-| `hstack` | `alignment` (`top`, `center`, `bottom`, `firstTextBaseline`, `lastTextBaseline`, `fill`), `spacing` | |
-| `vscroll`, `hscroll` | as `vstack` and `hstack`, and `showsIndicators`, `bounces` | |
+| `vstack` | `alignment` (`leading`, `center`, `trailing`, `fill`), `spacing` | `onTap` |
+| `hstack` | `alignment` (`top`, `center`, `bottom`, `firstTextBaseline`, `lastTextBaseline`, `fill`), `spacing` | `onTap` |
+| `vscroll`, `hscroll` | the properties of `vstack` and `hstack`, and `showsIndicators`, `bounces` | |
 | `spacer` | `minLength`, constant only | |
 | `label` | `text`, `font`, `textColor`, `numberOfLines`, `textAlignment`, `adjustsFontSizeToFitWidth` | |
 | `image` | `url`, `image`, `contentMode` (`scaleToFill`, `scaleAspectFit`, `scaleAspectFill`, `center`) | |
@@ -138,6 +138,7 @@ Every component also takes `width`, `height`, `aspectRatio`, `padding`, `backgro
 
 - `image` on an `image` or a `button` names an image in the app's asset catalog, or else an SF Symbol. On an `image` with a `url`, it shows until the URL's image has loaded.
 - `padding` on a view that is not a stack or a scroll view puts it in a stack with that padding. The other common properties, except the accessibility ones, then apply to that stack, so a background covers the padding.
+- A tap anywhere in a `vstack` or `hstack` with `onTap` runs its actions, so a whole row can be tapped. A control inside it, such as a button or a switch, keeps its own taps. Give the stack an `accessibilityLabel` and VoiceOver reads it as one button.
 - A `textfield` has a rounded border. `label` and `textfield` follow Dynamic Type when their font is a text style.
 
 ## Values

@@ -55,6 +55,24 @@ final class ActionTests: XCTestCase {
         XCTAssertEqual(issues, [])
     }
 
+    func testATapAnywhereOnAStackRunsItsActionsAndVoiceOverReadsItAsAButton() throws {
+        let previous = makeTapRecognizer
+        makeTapRecognizer = { RecordingTapRecognizer() }
+        defer { makeTapRecognizer = previous }
+        let row = try XCTUnwrap(try build("""
+        { "type": "hstack", "accessibilityLabel": "Keyboard", "onTap": { "action": "toggle", "path": "opened" },
+          "children": [ { "type": "label", "text": "Keyboard" } ] }
+        """) as? UIStackView)
+        let tap = try XCTUnwrap(row.gestureRecognizers?.first as? RecordingTapRecognizer)
+
+        tap.fire()
+
+        XCTAssertEqual(data.value, ["opened": .bool(true)])
+        XCTAssertTrue(row.isAccessibilityElement)
+        XCTAssertTrue(row.accessibilityTraits.contains(.button))
+        XCTAssertEqual(issues, [])
+    }
+
     func testSetWithoutAValueTakesTheValueOfTheEvent() throws {
         let stack = try XCTUnwrap(try build("""
         { "type": "vstack", "children": [

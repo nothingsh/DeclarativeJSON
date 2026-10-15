@@ -121,9 +121,9 @@ DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
 
 | 型別 | 屬性 | 事件 |
 | --- | --- | --- |
-| `vstack` | `alignment`（`leading`、`center`、`trailing`、`fill`）、`spacing` | |
-| `hstack` | `alignment`（`top`、`center`、`bottom`、`firstTextBaseline`、`lastTextBaseline`、`fill`）、`spacing` | |
-| `vscroll`、`hscroll` | 同 `vstack` 和 `hstack`，另有 `showsIndicators`、`bounces` | |
+| `vstack` | `alignment`（`leading`、`center`、`trailing`、`fill`）、`spacing` | `onTap` |
+| `hstack` | `alignment`（`top`、`center`、`bottom`、`firstTextBaseline`、`lastTextBaseline`、`fill`）、`spacing` | `onTap` |
+| `vscroll`、`hscroll` | `vstack` 和 `hstack` 的屬性，另有 `showsIndicators`、`bounces` | |
 | `spacer` | `minLength`，只接受常數 | |
 | `label` | `text`、`font`、`textColor`、`numberOfLines`、`textAlignment`、`adjustsFontSizeToFitWidth` | |
 | `image` | `url`、`image`、`contentMode`（`scaleToFill`、`scaleAspectFit`、`scaleAspectFill`、`center`） | |
@@ -138,6 +138,7 @@ DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
 
 - `image` 與 `button` 的 `image` 是 App asset catalog 裡的圖片名稱，找不到時當作 SF Symbol。`image` 同時有 `url` 時，它一直顯示到 URL 的圖片載入完成。
 - 不是 stack 也不是捲動視圖的視圖設了 `padding`，會被放進一個帶該內距的 stack。除了輔助使用屬性，其餘通用屬性都作用在這個 stack 上，所以背景會蓋住內距。
+- 設了 `onTap` 的 `vstack` 或 `hstack`，點擊其中任何位置都會執行它的動作，因此可以點擊整列。其中的控制項，如按鈕或開關，仍處理自己的點擊。給這個 stack 設定 `accessibilityLabel`，VoiceOver 會把它讀成一個按鈕。
 - `textfield` 有圓角邊框。字型是 text style 時，`label` 與 `textfield` 會跟著動態字級調整。
 
 ## 取值
