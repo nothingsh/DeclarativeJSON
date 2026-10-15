@@ -1,0 +1,60 @@
+{
+  "v": 1,
+  "templates": {
+    "title": {
+      "type": "label", "text": "$text", "font": "footnote", "textColor": "secondaryLabel",
+      "padding": { "horizontal": 20, "top": 24, "bottom": 6 }
+    },
+    "name": {
+      "type": "vstack", "alignment": "fill", "spacing": 8, "padding": { "horizontal": 20, "vertical": 8 },
+      "children": [
+        { "type": "textfield", "text": "$name", "placeholder": "Your name", "returnKeyType": "done",
+          "onChange": { "action": "set", "path": "name" } },
+        { "type": "hstack", "spacing": 4, "children": [
+          { "type": "label", "text": "Shown as", "font": "footnote", "textColor": "secondaryLabel" },
+          { "type": "label", "text": "$name", "font": "footnote" },
+          { "type": "spacer" }
+        ]}
+      ]
+    },
+    "toggle": {
+      "type": "vstack", "alignment": "fill", "spacing": 4, "padding": { "horizontal": 20, "vertical": 10 },
+      "children": [
+        { "type": "hstack", "spacing": 12, "children": [
+          { "type": "label", "text": "$title" },
+          { "type": "spacer" },
+          { "type": "switch", "isOn": "$on", "onChange": { "action": "set", "path": "on" } }
+        ]},
+        { "type": "label", "text": "$detail", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 0,
+          "isVisible": "$on" }
+      ]
+    },
+    "volume": {
+      "type": "vstack", "alignment": "fill", "spacing": 10, "padding": { "horizontal": 20, "vertical": 10 },
+      "children": [
+        { "type": "slider", "value": "$volume", "onChange": { "action": "set", "path": "volume" } },
+        { "type": "progress", "progress": "$volume", "progressTintColor": "systemGreen" }
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "profile",
+      "header": { "template": "title", "data": { "text": "PROFILE" } },
+      "items": [ { "id": "name", "template": "name", "data": { "name": "Ada" } } ]
+    },
+    {
+      "id": "notifications",
+      "header": { "template": "title", "data": { "text": "NOTIFICATIONS" } },
+      "items": [
+        { "id": "orders", "template": "toggle", "data": { "title": "Order updates", "on": true, "detail": "You hear about each order when it ships and when it arrives." } },
+        { "id": "offers", "template": "toggle", "data": { "title": "Offers", "on": false, "detail": "At most one message a week." } }
+      ]
+    },
+    {
+      "id": "sound",
+      "header": { "template": "title", "data": { "text": "VOLUME" } },
+      "items": [ { "id": "volume", "template": "volume", "data": { "volume": 0.6 } } ]
+    }
+  ]
+}

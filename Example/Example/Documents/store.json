@@ -1,0 +1,73 @@
+{
+  "v": 1,
+  "templates": {
+    "title": {
+      "type": "label", "text": "$text", "font": "title3",
+      "padding": { "horizontal": 20, "top": 20, "bottom": 8 }
+    },
+    "card": {
+      "type": "vstack", "padding": { "leading": 20, "bottom": 8 },
+      "children": [
+        { "type": "vstack", "alignment": "leading", "spacing": 6, "width": 150, "padding": 14,
+          "background": "secondarySystemBackground", "cornerRadius": 14,
+          "children": [
+            { "type": "image", "image": "$symbol", "tintColor": "$tint", "contentMode": "scaleAspectFit", "width": 36, "height": 36 },
+            { "type": "label", "text": "$name", "font": "headline" },
+            { "type": "label", "text": "$tagline", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 2 }
+          ]
+        }
+      ]
+    },
+    "product": {
+      "type": "hstack", "spacing": 12, "padding": { "horizontal": 20, "vertical": 10 },
+      "children": [
+        { "type": "image", "image": "$symbol", "tintColor": "$tint", "contentMode": "scaleAspectFit", "width": 40, "height": 40 },
+        { "type": "vstack", "alignment": "leading", "spacing": 2, "children": [
+          { "type": "label", "text": "$name", "font": "headline" },
+          { "type": "rating", "value": "$rating" },
+          { "type": "label", "text": "$price", "font": "subheadline", "textColor": "secondaryLabel" }
+        ]},
+        { "type": "spacer" },
+        { "type": "button", "image": "heart", "accessibilityLabel": "Like", "isHidden": "$liked",
+          "onTap": { "action": "toggle", "path": "liked" } },
+        { "type": "button", "image": "heart.fill", "tintColor": "systemPink", "accessibilityLabel": "Unlike", "isVisible": "$liked",
+          "onTap": { "action": "toggle", "path": "liked" } },
+        { "type": "button", "title": "Add",
+          "onTap": { "action": "addToCart", "name": "$name" } }
+      ]
+    },
+    "link": {
+      "type": "button", "title": "$title", "padding": 20,
+      "onTap": { "action": "openURL", "url": "$url" }
+    }
+  },
+  "sections": [
+    {
+      "id": "featured", "layout": "carousel",
+      "header": { "template": "title", "data": { "text": "Featured" } },
+      "items": [
+        { "id": "f-keyboard", "template": "card", "data": { "name": "Keyboard", "tagline": "Low profile, quiet keys", "symbol": "keyboard", "tint": "systemIndigo" } },
+        { "id": "f-headphones", "template": "card", "data": { "name": "Headphones", "tagline": "Noise cancelling", "symbol": "headphones", "tint": "systemTeal" } },
+        { "id": "f-display", "template": "card", "data": { "name": "Display", "tagline": "27 inches, 5K", "symbol": "display", "tint": "systemOrange" } }
+      ]
+    },
+    {
+      "id": "products",
+      "header": { "template": "title", "data": { "text": "All products" } },
+      "items": [
+        { "id": "keyboard", "template": "product", "data": { "name": "Keyboard", "price": "$99", "rating": 4, "liked": false, "symbol": "keyboard", "tint": "systemIndigo" } },
+        { "id": "mouse", "template": "product", "data": { "name": "Mouse", "price": "$49", "rating": 5, "liked": true, "symbol": "computermouse", "tint": "systemGreen" } },
+        { "id": "headphones", "template": "product", "data": { "name": "Headphones", "price": "$249", "rating": 4, "liked": false, "symbol": "headphones", "tint": "systemTeal" } },
+        { "id": "display", "template": "product", "data": { "name": "Display", "price": "$1,599", "rating": 3, "liked": false, "symbol": "display", "tint": "systemOrange" } },
+        { "id": "speaker", "template": "product", "data": { "name": "Speaker", "price": "$199", "rating": 4, "liked": false, "symbol": "hifispeaker", "tint": "systemPurple" } },
+        { "id": "watch", "template": "product", "data": { "name": "Watch", "price": "$399", "rating": 5, "liked": false, "symbol": "applewatch", "tint": "systemRed" } }
+      ]
+    },
+    {
+      "id": "more",
+      "items": [
+        { "id": "source", "template": "link", "data": { "title": "DeclarativeJSON on GitHub", "url": "https://github.com/nothingsh/DeclarativeJSON" } }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "v": 1,
+  "templates": {
+    "note": {
+      "type": "label", "text": "$text", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 0,
+      "padding": { "horizontal": 20, "top": 8, "bottom": 16 }
+    },
+    "entry": {
+      "type": "hstack", "spacing": 14, "padding": { "horizontal": 20, "vertical": 12 },
+      "children": [
+        { "type": "image", "image": "$icon", "tintColor": "systemBlue", "contentMode": "scaleAspectFit", "width": 28, "height": 28 },
+        { "type": "vstack", "alignment": "leading", "spacing": 2, "children": [
+          { "type": "label", "text": "$title", "font": "headline" },
+          { "type": "label", "text": "$detail", "font": "subheadline", "textColor": "secondaryLabel", "numberOfLines": 0 }
+        ]},
+        { "type": "button", "title": "Open", "accessibilityLabel": "$title",
+          "onTap": { "action": "navigate", "url": "$url" } }
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "examples",
+      "header": { "template": "note", "data": { "text": "Every screen of this app, this one included, is a JSON document in the app bundle. Open one to see what it shows." } },
+      "items": [
+        { "id": "store", "template": "entry", "data": {
+          "icon": "bag", "title": "Store", "url": "example://store",
+          "detail": "A carousel and a list, a like button that keeps its state, an app component and an app action."
+        }},
+        { "id": "settings", "template": "entry", "data": {
+          "icon": "gearshape", "title": "Settings", "url": "example://settings",
+          "detail": "A text field, a switch and a slider that write into the item's data, and views that follow it."
+        }}
+      ]
+    }
+  ]
+}

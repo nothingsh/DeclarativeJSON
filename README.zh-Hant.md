@@ -4,8 +4,6 @@
 
 UIKit 的伺服端驅動列表。一份 JSON 文件寫明 cell 的範本、項目和點擊後做什麼；函式庫用 [DeclarativeUIKit](https://github.com/nothingsh/DeclarativeUIKit) 的 stack 搭出 cell，用 [DeclarativeCombine](https://github.com/nothingsh/DeclarativeCombine) 繫結，再放進 collection view 顯示。
 
-> 第一個版本正在開發中。0.1.0 之前文件格式仍可能變動。
-
 ```json
 {
   "v": 1,
@@ -13,8 +11,8 @@ UIKit 的伺服端驅動列表。一份 JSON 文件寫明 cell 的範本、項�
     "product": {
       "type": "hstack", "spacing": 12, "alignment": "center", "padding": 16,
       "children": [
-        { "type": "image", "url": "$image", "width": 56, "height": 56, "cornerRadius": 8 },
-        { "type": "vstack", "spacing": 4, "children": [
+        { "type": "image", "url": "$image", "width": 56, "height": 56, "cornerRadius": 8, "clipsToBounds": true },
+        { "type": "vstack", "alignment": "leading", "spacing": 4, "children": [
           { "type": "label", "text": "$title", "font": "headline" },
           { "type": "label", "text": "$subtitle", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 2 }
         ]},
@@ -34,13 +32,32 @@ UIKit 的伺服端驅動列表。一份 JSON 文件寫明 cell 的範本、項�
 ```swift
 let document = try DocumentDecoder().decode(data)
 
-let actions = ActionRegistry.standard
-actions.register("navigate") { params, _ in router.open(params.url("url")) }
+var actions = ActionRegistry.standard
+actions.register(.navigate) { context in
+    if let url = context.url("url") { router.open(url) }
+}
 
-let controller = DocumentViewController(document: document, components: .standard, actions: actions)
+let controller = DocumentViewController(document: document, actions: actions)
+controller.onIssue = { print($0) }
 ```
 
-以 `$` 開頭的值引用項目 `data` 裡的一個鍵，其餘都是常數。動作在 App 本機執行：`navigate` 和 `openURL` 把 URL 交給你註冊的閉包，`set` 和 `toggle` 在裝置上修改項目的資料，App 也可以註冊自己的動作。註冊表能輸出一份清單，列出它接受的全部元件、屬性和動作，給產生文件的後端使用。
+以 `$` 開頭的值引用項目 `data` 裡的一個鍵，其餘都是常數。動作在 App 本機執行：`navigate` 和 `openURL` 把 URL 交給你註冊的閉包，`set` 和 `toggle` 在裝置上修改項目的資料，你也可以註冊自己的動作和元件。清單（manifest）列出全部元件、屬性和動作，給產生文件的後端使用。
+
+## 目錄
+
+- [需求](#需求)
+- [安裝](#安裝)
+- [文件](#文件)
+- [引用](#引用)
+- [元件](#元件)
+- [取值](#取值)
+- [事件與動作](#事件與動作)
+- [頁面](#頁面)
+- [自訂元件](#自訂元件)
+- [圖片](#圖片)
+- [文件裡的問題](#文件裡的問題)
+- [清單](#清單)
+- [範例 App](#範例-app)
 
 ## 需求
 
@@ -53,11 +70,191 @@ Swift Package Manager。在 `Package.swift` 裡：
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", branch: "main")
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", from: "0.1.0")
 ]
 ```
 
 DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
+
+## 文件
+
+文件有三個鍵：
+
+- `v`，格式的版本。這一版讀取第 1 版；其他版本的文件解碼失敗，丟出 `DocumentError.unsupportedVersion`。
+- `templates`，從名稱對應到 cell 或 header 的視圖樹。
+- `sections`，依序排列。section 有 `id`、`layout`、可選的 `header` 和它的 `items`。
+
+```json
+{ "id": "featured", "layout": "carousel",
+  "header": { "template": "title", "data": { "text": "Featured" } },
+  "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
+```
+
+`layout` 取 `list`，一欄佔滿寬度、高度隨內容的 cell；或取 `carousel`，一列橫向捲動。預設是 `list`。項目有在整頁唯一的 `id`、所用 `template` 的名稱和它的 `data`（一個 JSON 物件）。header 同樣有 `template` 和 `data`。
+
+範本裡的節點是一個物件，帶 `type`、它的屬性，stack 還帶 `children`：
+
+```json
+{ "type": "vstack", "spacing": 4, "children": [
+  { "type": "label", "text": "$title", "font": "headline" }
+]}
+```
+
+## 引用
+
+屬性值是以 `$` 開頭的字串時，取項目資料裡該鍵的值：`"text": "$title"`。引用就是整個值，不串接、不運算、不做條件判斷，所以格式化好的文字、價格和 URL 由後端放進 `data`，拿來就能顯示。`$$` 表示錢字號：`"$$5 off"` 是文字 `$5 off`。`data` 裡的字串永遠不是引用。
+
+引用的鍵不存在或為 `null`，或值的型別不對，該屬性視為未設定，視圖顯示預設值。型別不對還會回報。
+
+沒有 `not`，所以可見性有兩個屬性。共用一個引用的兩個視圖，一個寫 `isHidden`，一個寫 `isVisible`：
+
+```json
+{ "type": "button", "image": "heart", "isHidden": "$liked", "onTap": { "action": "toggle", "path": "liked" } },
+{ "type": "button", "image": "heart.fill", "isVisible": "$liked", "onTap": { "action": "toggle", "path": "liked" } }
+```
+
+請傳送 `false`，不要省略這個鍵：值缺少時兩個視圖都會顯示。
+
+## 元件
+
+屬性名稱就是設定它的 DeclarativeUIKit modifier 的名稱。帶標籤參數的 modifier 取以這些標籤為鍵的物件，例如 `"border": { "color": "separator", "width": 1 }`。
+
+| 型別 | 屬性 | 事件 |
+| --- | --- | --- |
+| `vstack` | `alignment`（`leading`、`center`、`trailing`、`fill`）、`spacing` | |
+| `hstack` | `alignment`（`top`、`center`、`bottom`、`firstTextBaseline`、`lastTextBaseline`、`fill`）、`spacing` | |
+| `vscroll`、`hscroll` | 同 `vstack` 和 `hstack`，另有 `showsIndicators`、`bounces` | |
+| `spacer` | `minLength`，只接受常數 | |
+| `label` | `text`、`font`、`textColor`、`numberOfLines`、`textAlignment`、`adjustsFontSizeToFitWidth` | |
+| `image` | `url`、`image`、`contentMode`（`scaleToFill`、`scaleAspectFit`、`scaleAspectFill`、`center`） | |
+| `button` | `title`、`titleColor`、`image`、`isEnabled` | `onTap` |
+| `textfield` | `text`、`placeholder`、`font`、`textColor`、`textAlignment`、`keyboardType`、`returnKeyType`、`isSecureTextEntry`、`isEnabled` | `onChange`、`onReturn` |
+| `switch` | `isOn`、`onTintColor`、`isEnabled` | `onChange` |
+| `slider` | `value`、`minimumValue`、`maximumValue`、`minimumTrackTintColor`、`maximumTrackTintColor`、`isEnabled` | `onChange` |
+| `progress` | `progress`、`progressTintColor`、`trackTintColor` | |
+| `activity` | `isAnimating`、`hidesWhenStopped`、`color` | |
+
+每個元件還接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
+
+- `image` 與 `button` 的 `image` 是 App asset catalog 裡的圖片名稱，找不到時當作 SF Symbol。`image` 同時有 `url` 時，它一直顯示到 URL 的圖片載入完成。
+- 不是 stack 也不是捲動視圖的視圖設了 `padding`，會被放進一個帶該內距的 stack。除了輔助使用屬性，其餘通用屬性都作用在這個 stack 上，所以背景會蓋住內距。
+- `textfield` 有圓角邊框。字型是 text style 時，`label` 與 `textfield` 會跟著動態字級調整。
+
+## 取值
+
+- **顏色**：系統顏色名稱，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。邊框顏色只讀取一次，之後在淺色與深色模式間切換時不會跟著變。
+- **字型**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重從 `ultraLight` 到 `black`。
+- **內距**（`padding`）：一個數字表示四邊相同，或一個物件，含 `top`、`leading`、`bottom`、`trailing`、`horizontal`、`vertical` 中任意幾個。單邊優先於所在的軸，沒寫的邊為 0。
+- **長度**，如 `width` 和 `minLength`，必須是有限且非負的數；`aspectRatio` 必須大於 0。
+
+## 事件與動作
+
+`onTap`、`onChange` 和 `onReturn` 接受一個動作，或依序執行的動作陣列：
+
+```json
+"onTap": [
+  { "action": "toggle", "path": "liked" },
+  { "action": "track", "event": "like", "liked": "$liked" }
+]
+```
+
+參數可以是引用，在動作執行時才讀取，所以上面第二個動作看到的是第一個動作改過的資料。
+
+| 動作 | 參數 | 作用 |
+| --- | --- | --- |
+| `navigate` | `url` | 把 URL 交給你註冊的閉包，例如你的 router。 |
+| `openURL` | `url` | 把 URL 交給你註冊的閉包，例如 `UIApplication.shared.open`。 |
+| `set` | `path`、`value` | 把項目資料中 `path` 處設為 `value`。 |
+| `toggle` | `path` | 反轉 `path` 處的 Bool；不存在時變成 `true`。 |
+
+註冊之前，`navigate` 和 `openURL` 什麼也不做，並回報這一點。`path` 是項目資料的鍵，只能寫常數。
+
+`onChange` 帶一個值：`textfield` 的文字、`switch` 的開關狀態、`slider` 的值。不寫 `value` 的 `set` 儲存這個值，讓資料與控制項保持一致：
+
+```json
+{ "type": "switch", "isOn": "$enabled", "onChange": { "action": "set", "path": "enabled" } }
+```
+
+不會傳送任何東西給伺服器。要傳送，或做別的事，就註冊一個動作：
+
+```swift
+var actions = ActionRegistry.standard
+actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string), "liked": PropertySpec(.bool)])) { context in
+    analytics.track(context.string("event"), liked: context.bool("liked"))
+}
+```
+
+`ActionContext` 用 `string`、`url`、`bool` 和 `number` 讀取參數，型別不對時會回報；`parameters` 給出全部參數。`event` 是事件的值，`data` 是項目的資料，`update { $0["key"] = … }` 像 `set` 一樣修改資料。
+
+## 頁面
+
+`DocumentViewController` 在 collection view 裡顯示文件。它的 `collectionView` 可以由你設定，例如加上下拉更新。
+
+每個 cell 第一次顯示時依範本建出視圖並保留；顯示另一個項目時只把該項目的資料送給繫結。`set` 和 `toggle` 修改的是頁面持有的項目資料，所以 cell 捲出再捲回時改動仍在，cell 也會依新內容調整高度。
+
+```swift
+controller.setDocument(newDocument)
+```
+
+`setDocument` 顯示更新後的文件。section 與項目依 `id` 對應並帶動畫，新文件的資料取代裝置上做過的改動。
+
+## 自訂元件
+
+註冊一個型別，寫明它接受什麼、怎麼建出視圖：
+
+```swift
+var components = ComponentRegistry<UIView>.standard
+components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.number)])) { context in
+    RatingView().onValue(context.number("value")) { view, value in
+        view.rating = value ?? 0
+    }
+}
+let controller = DocumentViewController(document: document, components: components, actions: actions)
+```
+
+`BuildContext` 把每個屬性讀成 publisher，節點沒設定該屬性時回傳 nil。常數送出一次；引用隨項目資料的每個值送出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 讀取上文的各種型別，`choice` 讀取一組字串之一，`value` 讀取其他任何東西。`onValue` 把屬性套用到視圖，`onEvent` 在視圖的某個 publisher 上執行 `context.action(.onTap)`。spec 寫了 `acceptsChildren: true` 時，子節點已替你建好，放在 `context.children`。通用屬性會作用在你回傳的視圖上。
+
+註冊已有的型別會取代它。
+
+## 圖片
+
+`image` 的 `url` 由 `ImageLoader.urlSession` 載入，圖片快取在記憶體裡。要用自己的圖片載入方案：
+
+```swift
+let loader = ImageLoader { url, completion in
+    let request = imagePipeline.load(url) { image in completion(image) }
+    return AnyCancellable { request.cancel() }
+}
+let components = ComponentRegistry<UIView>.standard(imageLoader: loader)
+```
+
+URL 改變時，視圖取消先前的載入並忽略它的結果。
+
+## 文件裡的問題
+
+只有在不是 JSON、版本不同，或骨架寫錯時，文件才會解碼失敗。骨架指 `v`、`templates`、`sections`、每個 section 和項目的 `id`，以及每個項目和 header 的 `template`。其餘問題都盡量顯示，並回報給 `onIssue`，每份文件同一問題只報一次：
+
+- 未知的元件型別顯示為空的視圖；
+- 未知的屬性或事件，以及在只接受常數處寫的引用，會被忽略；
+- 型別不對的值視為缺少；
+- 不是帶 `type` 的物件的節點、未知或寫錯的動作、重複的 `id`、範本不存在的項目或 header 會被移除；
+- 未知的 `layout` 以列表顯示。
+
+每個 `Issue` 都寫明位置，例如 `templates.product.children[2]`。
+
+## 清單
+
+[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作和它們的參數。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
+
+```swift
+let manifest = try Manifest(components: components, actions: actions).encoded()
+```
+
+## 範例 App
+
+`Example/Example.xcodeproj` 是一個以本機 package 方式使用本函式庫的 iOS App。用 Xcode 開啟，在 iOS 模擬器上執行 `Example` scheme。每個畫面，包括選單，都是 `Example/Example/Documents` 裡的一份 JSON 文件；`navigate` 到 `example://store` 會開啟 `store.json`。`Pages.swift` 註冊了 router、`openURL`、一個 `addToCart` 動作和一個 `rating` 元件。
+
+<img src="docs/images/example-store.png" width="300" alt="商店畫面"> <img src="docs/images/example-settings.png" width="300" alt="設定畫面">
 
 ## 授權
 

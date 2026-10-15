@@ -1,0 +1,45 @@
+import DeclarativeJSON
+import UIKit
+
+/// Opens the documents bundled with the app, where a real app would fetch
+/// them from its server, and handles what they ask the app to do.
+@MainActor
+final class Pages {
+    weak var navigationController: UINavigationController?
+
+    private let titles = ["home": "DeclarativeJSON", "store": "Store", "settings": "Settings"]
+    private var components = ComponentRegistry<UIView>.standard
+    private var actions = ActionRegistry.standard
+
+    init() {
+        components.register(.rating, build: buildRating)
+
+        // The router: example://store opens store.json.
+        actions.register(.navigate) { [weak self] context in
+            if let url = context.url("url") { self?.open(url) }
+        }
+        actions.register(.openURL) { context in
+            if let url = context.url("url") { UIApplication.shared.open(url) }
+        }
+        actions.register(ActionSpec("addToCart", parameters: ["name": PropertySpec(.string)])) { [weak self] context in
+            let alert = UIAlertController(
+                title: "Added to the cart", message: context.string("name"), preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            self?.navigationController?.present(alert, animated: true)
+        }
+    }
+
+    func open(_ url: URL) {
+        guard url.scheme == "example", let name = url.host,
+              let file = Bundle.main.url(forResource: name, withExtension: "json"),
+              let document = try? DocumentDecoder().decode(Data(contentsOf: file)) else {
+            print("No page for \(url)")
+            return
+        }
+        let controller = DocumentViewController(document: document, components: components, actions: actions)
+        controller.title = titles[name]
+        controller.onIssue = { print("\(name).json: \($0)") }
+        navigationController?.pushViewController(controller, animated: navigationController?.topViewController != nil)
+    }
+}
