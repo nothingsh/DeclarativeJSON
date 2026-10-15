@@ -108,6 +108,7 @@ extension ComponentRegistry where View == UIView {
                     .onValue(context.color("titleColor")) { $0.titleColor($1) }
                     .onValue(context.string("image")) { $0.image($1.flatMap(namedImage)) }
                     .onValue(context.bool("isEnabled")) { $0.isEnabled = $1 ?? true }
+                    .onEvent(context.action(.onTap), \.tapPublisher)
             },
             "textfield": { context in
                 UITextField()
@@ -115,7 +116,10 @@ extension ComponentRegistry where View == UIView {
                         $0.borderStyle = .roundedRect
                         $0.adjustsFontForContentSizeCategory = true
                     }
-                    .onValue(context.string("text")) { $0.text = $1 }
+                    // Only a different text: setting the text being typed, as
+                    // `set` in onChange does, would end the input method's
+                    // composition.
+                    .onValue(context.string("text")) { if $0.text != $1 ?? "" { $0.text = $1 } }
                     .onValue(context.string("placeholder")) { $0.placeholder = $1 }
                     .onValue(context.font("font")) { $0.font = $1 }
                     .onValue(context.color("textColor")) { $0.textColor = $1 }
@@ -130,12 +134,15 @@ extension ComponentRegistry where View == UIView {
                     ])) { $0.returnKeyType = $1 ?? .default }
                     .onValue(context.bool("isSecureTextEntry")) { $0.isSecureTextEntry = $1 ?? false }
                     .onValue(context.bool("isEnabled")) { $0.isEnabled = $1 ?? true }
+                    .onEvent(context.action(.onChange), \.textPublisher) { .string($0) }
+                    .onEvent(context.action(.onReturn), \.returnPublisher)
             },
             "switch": { context in
                 UISwitch()
                     .onValue(context.bool("isOn")) { $0.isOn = $1 ?? false }
                     .onValue(context.color("onTintColor")) { $0.onTintColor = $1 }
                     .onValue(context.bool("isEnabled")) { $0.isEnabled = $1 ?? true }
+                    .onEvent(context.action(.onChange), \.isOnPublisher) { .bool($0) }
             },
             "slider": { context in
                 // The range before the value, which the slider clamps to it.
@@ -146,6 +153,7 @@ extension ComponentRegistry where View == UIView {
                     .onValue(context.color("minimumTrackTintColor")) { $0.minimumTrackTintColor = $1 }
                     .onValue(context.color("maximumTrackTintColor")) { $0.maximumTrackTintColor = $1 }
                     .onValue(context.bool("isEnabled")) { $0.isEnabled = $1 ?? true }
+                    .onEvent(context.action(.onChange), \.valuePublisher) { .number(Double($0)) }
             },
             "progress": { context in
                 UIProgressView(progressViewStyle: .default)

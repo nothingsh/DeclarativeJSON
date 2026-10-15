@@ -23,6 +23,16 @@ public struct Issue: Equatable, Sendable, CustomStringConvertible {
         /// A property value of the wrong type or out of range, written or
         /// referenced. The property is treated as missing.
         case typeMismatch(property: String, expected: PropertyType)
+        /// An event value that is not an action object with a string
+        /// `action`, or a list of them. It is left out.
+        case invalidAction
+        /// An action the registry does not know. It is left out.
+        case unknownAction(String)
+        /// An action without a parameter it needs. It does nothing.
+        case missingParameter(String)
+        /// A built-in action the app has not registered a handler for, such as
+        /// `navigate`. It does nothing.
+        case unhandledAction(String)
     }
 
     public let kind: Kind
@@ -52,6 +62,14 @@ public struct Issue: Equatable, Sendable, CustomStringConvertible {
             return "\(path).children: this component has no children; ignored"
         case .typeMismatch(let name, let expected):
             return "\(path).\(name): not a valid \(expected.name); treated as missing"
+        case .invalidAction:
+            return "\(path): not an action; it needs to be an object with a string \"action\""
+        case .unknownAction(let name):
+            return "\(path): unknown action \"\(name)\"; left out"
+        case .missingParameter(let name):
+            return "\(path).\(name): missing; the action does nothing"
+        case .unhandledAction(let name):
+            return "\(path): no handler is registered for \"\(name)\"; it does nothing"
         }
     }
 }

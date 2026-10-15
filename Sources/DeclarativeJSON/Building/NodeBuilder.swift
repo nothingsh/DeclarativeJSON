@@ -5,11 +5,28 @@ import UIKit
 
 /// Builds the view of a template node once, binding its `$` properties to the
 /// item data, so that new data updates the view without building it again.
+///
+/// `update` gets the data an action changed. The page keeps it and sends it
+/// into `data`; it must not hold the views strongly.
 @MainActor
 struct NodeBuilder {
     let components: ComponentRegistry<UIView>
-    let data: AnyPublisher<[String: JSONValue], Never>
+    let data: CurrentValueSubject<[String: JSONValue], Never>
     let report: (Issue) -> Void
+    private let runner: ActionRunner
+
+    init(
+        components: ComponentRegistry<UIView>,
+        actions: ActionRegistry,
+        data: CurrentValueSubject<[String: JSONValue], Never>,
+        update: @escaping ([String: JSONValue]) -> Void,
+        report: @escaping (Issue) -> Void
+    ) {
+        self.components = components
+        self.data = data
+        self.report = report
+        runner = ActionRunner(actions: actions, data: data, update: update, report: report)
+    }
 
     func build(_ node: Node, path: String) -> UIView {
         guard let component = components.component(node.type) else {
@@ -24,7 +41,7 @@ struct NodeBuilder {
             let isEvent = EventName(rawValue: name).map(spec.events.contains) ?? false
             if declared == nil && !isEvent {
                 report(Issue(.unknownProperty(name), at: path))
-            } else if case .reference = value, declared?.acceptsReference == false {
+            } else if case .reference = value, isEvent || declared?.acceptsReference == false {
                 report(Issue(.referenceNotAccepted(name), at: path))
             } else {
                 properties[name] = value
@@ -44,7 +61,8 @@ struct NodeBuilder {
             node: Node(type: node.type, properties: properties),
             children: children,
             path: path,
-            data: data,
+            data: data.eraseToAnyPublisher(),
+            runner: runner,
             report: report
         )
         return applyCommonProperties(to: component.build(context), context)

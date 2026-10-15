@@ -8,11 +8,11 @@ final class ManifestTests: XCTestCase {
     /// manifest.json at the root of the repository is what the backend reads.
     /// When it no longer matches the code, this test rewrites it and fails, so
     /// that the change shows in the diff.
-    func testTheCheckedInManifestMatchesTheStandardRegistry() throws {
+    func testTheCheckedInManifestMatchesTheStandardRegistries() throws {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("manifest.json")
-        let generated = try ComponentRegistry<UIView>.standard.manifest.encoded() + Data("\n".utf8)
+        let generated = try Manifest(components: ComponentRegistry<UIView>.standard, actions: .standard).encoded() + Data("\n".utf8)
         let checkedIn = try? Data(contentsOf: url)
 
         if checkedIn != generated {
@@ -22,7 +22,7 @@ final class ManifestTests: XCTestCase {
     }
 
     func testTheManifestListsTheThirteenBuiltInTypesWithTheirPropertiesAndEvents() throws {
-        guard case .object(let root) = Manifest(components: ComponentSpec.standard).json,
+        guard case .object(let root) = Manifest(components: ComponentSpec.standard, actions: []).json,
               case .object(let components)? = root["components"] else {
             return XCTFail("no components")
         }

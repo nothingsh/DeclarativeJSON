@@ -29,11 +29,6 @@ public struct ComponentRegistry<View> {
         components.values.map(\.spec).sorted { $0.type < $1.type }
     }
 
-    /// The manifest of every registered component, for the backend.
-    public var manifest: Manifest {
-        Manifest(components: specs)
-    }
-
     func component(_ type: String) -> (spec: ComponentSpec, build: Build)? {
         components[type]
     }

@@ -15,7 +15,9 @@ final class BuildingTests: XCTestCase {
         let value = try JSONDecoder().decode(JSONValue.self, from: Data(json.utf8))
         var decodeIssues: [Issue] = []
         let node = try XCTUnwrap(Node(value, path: "t", issues: &decodeIssues))
-        let builder = NodeBuilder(components: components, data: data.eraseToAnyPublisher()) { [unowned self] in
+        let builder = NodeBuilder(
+            components: components, actions: .standard, data: data, update: { [data] in data.send($0) }
+        ) { [unowned self] in
             issues.append($0)
         }
         return builder.build(node, path: "t")

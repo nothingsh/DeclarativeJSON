@@ -18,6 +18,7 @@ public final class BuildContext<View> {
     public let path: String
 
     private let data: AnyPublisher<[String: JSONValue], Never>
+    private let runner: ActionRunner
     private let report: (Issue) -> Void
 
     init(
@@ -25,13 +26,23 @@ public final class BuildContext<View> {
         children: [View],
         path: String,
         data: AnyPublisher<[String: JSONValue], Never>,
+        runner: ActionRunner,
         report: @escaping (Issue) -> Void
     ) {
         self.node = node
         self.children = children
         self.path = path
         self.data = data
+        self.runner = runner
         self.report = report
+    }
+
+    /// What runs the actions of `event` with the event's value, or nil when
+    /// the node does not set the event. Call it once per event: the actions
+    /// are checked, and their problems reported, on each call.
+    public func action(_ event: EventName) -> ((JSONValue?) -> Void)? {
+        guard case .constant(let json)? = node.properties[event.rawValue] else { return nil }
+        return runner.handler(for: json, path: "\(path).\(event.rawValue)")
     }
 
     /// The property's JSON values, unchecked.

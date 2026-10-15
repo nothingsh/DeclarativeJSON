@@ -16,6 +16,8 @@ public indirect enum PropertyType: Equatable, Sendable {
     case oneOf([String])
     /// An object with these keys, as for a modifier with labeled arguments.
     case object([String: PropertyType])
+    /// Any JSON value.
+    case any
 
     /// The name of the type in the manifest.
     public var name: String {
@@ -30,6 +32,7 @@ public indirect enum PropertyType: Equatable, Sendable {
         case .insets: return "insets"
         case .oneOf: return "oneOf"
         case .object: return "object"
+        case .any: return "any"
         }
     }
 }

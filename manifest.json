@@ -1,4 +1,42 @@
 {
+  "actions" : {
+    "navigate" : {
+      "parameters" : {
+        "url" : {
+          "reference" : true,
+          "type" : "url"
+        }
+      }
+    },
+    "openURL" : {
+      "parameters" : {
+        "url" : {
+          "reference" : true,
+          "type" : "url"
+        }
+      }
+    },
+    "set" : {
+      "parameters" : {
+        "path" : {
+          "reference" : false,
+          "type" : "string"
+        },
+        "value" : {
+          "reference" : true,
+          "type" : "any"
+        }
+      }
+    },
+    "toggle" : {
+      "parameters" : {
+        "path" : {
+          "reference" : false,
+          "type" : "string"
+        }
+      }
+    }
+  },
   "common" : {
     "accessibilityIdentifier" : {
       "reference" : true,

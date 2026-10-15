@@ -13,6 +13,19 @@ public extension PublisherBindable {
         guard let publisher else { return self }
         return onReceive(publisher, perform: apply)
     }
+
+    /// Runs `action`, from `BuildContext.action(_:)`, with the value of each
+    /// event from one of this view's publishers, or does nothing when the node
+    /// does not set the event.
+    @discardableResult
+    func onEvent<P: Publisher>(
+        _ action: ((JSONValue?) -> Void)?,
+        _ publisher: (Self) -> P,
+        value: @escaping (P.Output) -> JSONValue? = { _ in nil }
+    ) -> Self where P.Failure == Never {
+        guard let action else { return self }
+        return sink(publisher) { action(value($0)) }
+    }
 }
 
 @MainActor

@@ -1,7 +1,7 @@
 import Foundation
 
-/// A description of every component, property and event a registry accepts,
-/// for the backend that generates documents.
+/// A description of every component, property, event and action the
+/// registries accept, for the backend that generates documents.
 ///
 /// ```json
 /// {
@@ -13,6 +13,9 @@ import Foundation
 ///       "events": ["onTap"],
 ///       "properties": { "title": { "type": "string", "reference": true }, … }
 ///     }
+///   },
+///   "actions": {
+///     "navigate": { "parameters": { "url": { "type": "url", "reference": true } } }
 ///   }
 /// }
 /// ```
@@ -20,13 +23,19 @@ import Foundation
 /// `common` lists the properties every component accepts besides its own.
 /// `reference` tells whether the value can be a `$` reference. A type is one
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
-/// `insets`, `oneOf` with its `values`, and `object` with the type of each of
-/// its `properties`.
+/// `insets`, `oneOf` with its `values`, `object` with the type of each of
+/// its `properties`, and `any`.
 public struct Manifest {
     public let components: [ComponentSpec]
+    public let actions: [ActionSpec]
 
-    public init(components: [ComponentSpec]) {
+    public init(components: [ComponentSpec], actions: [ActionSpec]) {
         self.components = components
+        self.actions = actions
+    }
+
+    public init<View>(components: ComponentRegistry<View>, actions: ActionRegistry) {
+        self.init(components: components.specs, actions: actions.specs)
     }
 
     /// The manifest as pretty-printed JSON with sorted keys, so that the same
@@ -46,10 +55,15 @@ public struct Manifest {
                 "properties": Self.json(spec.properties),
             ])
         }
+        var actions: [String: JSONValue] = [:]
+        for spec in self.actions {
+            actions[spec.name] = .object(["parameters": Self.json(spec.parameters)])
+        }
         return .object([
             "v": .number(Double(DocumentVersion.current)),
             "common": Self.json(ComponentSpec.commonProperties),
             "components": .object(components),
+            "actions": .object(actions),
         ])
     }
 
@@ -63,7 +77,7 @@ public struct Manifest {
 
     private static func json(_ type: PropertyType) -> [String: JSONValue] {
         switch type {
-        case .number, .integer, .bool, .string, .url, .color, .font, .insets:
+        case .number, .integer, .bool, .string, .url, .color, .font, .insets, .any:
             return ["type": .string(type.name)]
         case .oneOf(let values):
             return ["type": .string(type.name), "values": .array(values.map(JSONValue.string))]
