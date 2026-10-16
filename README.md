@@ -195,6 +195,17 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` reads parameters with `string`, `url`, `bool` and `number`, which report a value of the wrong type, or gives them all in `parameters`. `event` is the event's value, `data` the item's data, and `update { $0["key"] = … }` changes the data as `set` does.
 
+`item` tells which item the action runs for: its `id`, its `section` and its `template`, or, for a section's header, `isHeader` and no `id`. `sourceView` is the view that sent the event and `page` the `DocumentViewController`, for presenting from them:
+
+```swift
+actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) { context in
+    guard let url = context.url("url"), let page = context.page else { return }
+    let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    sheet.popoverPresentationController?.sourceView = context.sourceView
+    page.present(sheet, animated: true)
+}
+```
+
 `update` also works after the handler returns, when a request finishes for example. The change goes to the item the action ran for, even when its cell shows another item by then, and applies to the item's data as it is at that time. When the page no longer has the item, after `setDocument` for example, nothing changes.
 
 ```swift
@@ -232,7 +243,7 @@ components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.
 let controller = DocumentViewController(document: document, components: components, actions: actions)
 ```
 
-`BuildContext` reads each property as a publisher, or returns nil when the node does not set it. A constant emits once; a reference emits each value of the item's data. `number`, `length`, `integer`, `bool`, `string`, `url`, `color`, `font` and `insets` read the types above, `choice` one of a set of strings, and `value` anything else. `onValue` applies a property to a view, and `onEvent` runs `context.action(.onTap)` on one of the view's publishers. Children are built for you, in `context.children`, when the spec says `acceptsChildren: true`. The common properties are applied to the view you return.
+`BuildContext` reads each property as a publisher, or returns nil when the node does not set it. A constant emits once; a reference emits each value of the item's data. `number`, `length`, `integer`, `bool`, `string`, `url`, `color`, `font` and `insets` read the types above, `choice` one of a set of strings, and `value` anything else. `onValue` applies a property to a view, and `onEvent` runs `context.action(.onTap)` on one of the view's publishers, with the view as the actions' `sourceView`. To run the actions yourself, call what `context.action` returns with the event's value and the view: `action(.bool(isOn), source: view)`. Children are built for you, in `context.children`, when the spec says `acceptsChildren: true`. The common properties are applied to the view you return.
 
 Registering a type that exists replaces it.
 

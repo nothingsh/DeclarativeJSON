@@ -195,6 +195,17 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` 用 `string`、`url`、`bool` 和 `number` 读取参数，类型不对时会上报；`parameters` 给出全部参数。`event` 是事件的值，`data` 是条目的数据，`update { $0["key"] = … }` 像 `set` 一样修改数据。
 
+`item` 说明动作是为哪个条目执行的：它的 `id`、`section` 和 `template`；section 的 header 则 `isHeader` 为 true、没有 `id`。`sourceView` 是发出事件的视图，`page` 是 `DocumentViewController`，用来从它们弹出界面：
+
+```swift
+actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) { context in
+    guard let url = context.url("url"), let page = context.page else { return }
+    let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    sheet.popoverPresentationController?.sourceView = context.sourceView
+    page.present(sheet, animated: true)
+}
+```
+
 `update` 也可以在处理闭包返回之后调用，比如请求完成时。改动仍然落到触发动作的那个条目上，即使它的 cell 此时已经在显示别的条目；改动作用在条目当时的数据上。页面里已经没有这个条目时（比如 `setDocument` 之后），什么也不改。
 
 ```swift
@@ -232,7 +243,7 @@ components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.
 let controller = DocumentViewController(document: document, components: components, actions: actions)
 ```
 
-`BuildContext` 把每个属性读成 publisher，节点没设该属性时返回 nil。常量发出一次；引用随条目数据的每个值发出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 读取上文的各种类型，`choice` 读取一组字符串之一，`value` 读取其他任何东西。`onValue` 把属性应用到视图，`onEvent` 在视图的某个 publisher 上执行 `context.action(.onTap)`。spec 写了 `acceptsChildren: true` 时，子节点已替你建好，放在 `context.children`。通用属性会作用在你返回的视图上。
+`BuildContext` 把每个属性读成 publisher，节点没设该属性时返回 nil。常量发出一次；引用随条目数据的每个值发出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 读取上文的各种类型，`choice` 读取一组字符串之一，`value` 读取其他任何东西。`onValue` 把属性应用到视图，`onEvent` 在视图的某个 publisher 上执行 `context.action(.onTap)`，并把这个视图作为动作的 `sourceView`。要自己执行动作，就用事件的值和视图调用 `context.action` 返回的值：`action(.bool(isOn), source: view)`。spec 写了 `acceptsChildren: true` 时，子节点已替你建好，放在 `context.children`。通用属性会作用在你返回的视图上。
 
 注册已有的类型会替换它。
 

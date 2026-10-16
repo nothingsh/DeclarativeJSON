@@ -10,9 +10,12 @@ All notable changes to this project are documented here. The format follows
 
 - `onTap` on `vstack` and `hstack`, so a whole row can be tapped. With an `accessibilityLabel`, VoiceOver reads the stack as one button.
 - `fallback` on any node: a node shown instead when the app does not know the node's type, such as a component of a later release.
+- `ActionContext.item`, `sourceView` and `page`: which item or header an action runs for, the view that sent the event, and the page, for presenting a share sheet or a popover from an action.
 - `DocumentVersion.minor`, and `minor` in the manifest: which additions to version 1 of the format a release reads, for the app to send with its requests. This release reads 1.
 
 ### Changed
+
+- `BuildContext.action(_:)` returns an `EventAction`, which takes the view that sent the event as `source`. Calling it as before, `action(value)`, and passing it to `onEvent` still compile; code that stores it as a `(JSONValue?) -> Void` closure has to store an `EventAction` instead.
 
 - Requires iOS 15, the earliest version Xcode 26 builds for and has simulators of. iOS 15 runs on every iPhone that runs iOS 14.
 

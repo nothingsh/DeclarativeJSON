@@ -18,8 +18,8 @@ final class ActionTests: XCTestCase {
             components: .standard,
             actions: actions,
             data: data,
-            updater: { [unowned self] in
-                { [unowned self] change in
+            target: { [unowned self] in
+                ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), page: nil) { [unowned self] change in
                     var changed = data.value
                     change(&changed)
                     updates.append(changed)

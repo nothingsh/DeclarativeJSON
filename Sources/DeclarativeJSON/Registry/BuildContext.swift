@@ -1,6 +1,22 @@
 import Combine
 import Foundation
 
+/// Runs the actions of a node's event, from `BuildContext.action(_:)`.
+@MainActor
+public struct EventAction {
+    private let run: (JSONValue?, AnyObject?) -> Void
+
+    init(_ run: @escaping (JSONValue?, AnyObject?) -> Void) {
+        self.run = run
+    }
+
+    /// Runs the actions with the event's value. `source` is the view that
+    /// sent the event, which the actions read as `ActionContext.sourceView`.
+    public func callAsFunction(_ value: JSONValue? = nil, source: AnyObject? = nil) {
+        run(value, source)
+    }
+}
+
 /// What a component's build closure gets: its node, its built children, and
 /// its properties as publishers.
 ///
@@ -40,7 +56,7 @@ public final class BuildContext<View> {
     /// What runs the actions of `event` with the event's value, or nil when
     /// the node does not set the event. Call it once per event: the actions
     /// are checked, and their problems reported, on each call.
-    public func action(_ event: EventName) -> ((JSONValue?) -> Void)? {
+    public func action(_ event: EventName) -> EventAction? {
         guard case .constant(let json)? = node.properties[event.rawValue] else { return nil }
         return runner.handler(for: json, path: "\(path).\(event.rawValue)")
     }
