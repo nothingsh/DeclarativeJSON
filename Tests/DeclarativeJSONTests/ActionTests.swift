@@ -19,7 +19,8 @@ final class ActionTests: XCTestCase {
             actions: actions,
             data: data,
             target: { [unowned self] in
-                ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), page: nil) { [unowned self] change in
+                ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), data: { [unowned self] in data.value }) {
+                    [unowned self] change in
                     var changed = data.value
                     change(&changed)
                     updates.append(changed)
@@ -58,6 +59,54 @@ final class ActionTests: XCTestCase {
         XCTAssertEqual(updates, [["liked": .bool(true), "title": .string("Keyboard")]])
         XCTAssertFalse(label.isHidden)
         XCTAssertEqual(issues, [])
+    }
+
+    private var pending: [CheckedContinuation<Void, Error>] = []
+
+    func testAnAsyncActionRunsItsOnSuccessOrItsOnFailureThenTheActionsAfterIt() async throws {
+        struct Failure: Error {}
+        var recorded: [JSONValue?] = []
+        var actions = ActionRegistry.standard
+        actions.register(ActionSpec("record", parameters: ["value": PropertySpec(.any)])) { context in
+            recorded.append(context.parameters["value"])
+        }
+        actions.register(ActionSpec("like")) { [unowned self] _ in
+            try await withCheckedThrowingContinuation { pending.append($0) }
+        }
+        data.send(["liked": .bool(false)])
+        let button = try XCTUnwrap(try build("""
+        { "type": "button", "onTap": [
+          { "action": "toggle", "path": "liked" },
+          { "action": "like",
+            "onSuccess": { "action": "record", "value": "saved" },
+            "onFailure": [ { "action": "toggle", "path": "liked" }, { "action": "record", "value": "$liked" } ] },
+          { "action": "record", "value": "after" }
+        ]}
+        """, actions: actions) as? UIButton)
+
+        button.fire(.touchUpInside)
+        XCTAssertEqual(data.value, ["liked": .bool(true)])
+        XCTAssertEqual(recorded, [])
+        await waitUntil(!pending.isEmpty)
+        pending.removeFirst().resume(throwing: Failure())
+        await waitUntil(recorded.count == 2)
+        XCTAssertEqual(data.value, ["liked": .bool(false)])
+        XCTAssertEqual(recorded, [.bool(false), .string("after")])
+
+        recorded = []
+        button.fire(.touchUpInside)
+        await waitUntil(!pending.isEmpty)
+        pending.removeFirst().resume()
+        await waitUntil(recorded.count == 2)
+        XCTAssertEqual(data.value, ["liked": .bool(true)])
+        XCTAssertEqual(recorded, [.string("saved"), .string("after")])
+        XCTAssertEqual(issues, [])
+    }
+
+    private func waitUntil(_ condition: @autoclosure () -> Bool) async {
+        for _ in 0..<100 where !condition() {
+            await Task.yield()
+        }
     }
 
     func testATapAnywhereOnAStackRunsItsActionsAndVoiceOverReadsItAsAButton() throws {
@@ -172,7 +221,7 @@ final class ActionTests: XCTestCase {
           { "type": "button", "onTap": [
             "toggle",
             { "action": "share" },
-            { "action": "toggle", "path": "$key", "animated": true },
+            { "action": "toggle", "path": "$key", "animated": true, "onFailure": { "action": "share" } },
             { "action": "set", "path": "count", "value": 1 }
           ]},
           { "type": "button", "onTap": "$tap" }
@@ -182,6 +231,7 @@ final class ActionTests: XCTestCase {
             Issue(.invalidAction, at: "t.children[0].onTap[0]"),
             Issue(.unknownAction("share"), at: "t.children[0].onTap[1]"),
             Issue(.unknownProperty("animated"), at: "t.children[0].onTap[2]"),
+            Issue(.unknownProperty("onFailure"), at: "t.children[0].onTap[2]"),
             Issue(.referenceNotAccepted("path"), at: "t.children[0].onTap[2]"),
             Issue(.referenceNotAccepted("onTap"), at: "t.children[1]"),
         ])

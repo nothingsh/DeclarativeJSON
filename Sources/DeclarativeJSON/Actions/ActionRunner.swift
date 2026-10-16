@@ -33,38 +33,80 @@ public struct ItemInfo: Equatable, Sendable {
 /// Changes the data the page keeps for one item: applies the change to the
 /// item's data as the page has it, shows the result and returns it, or
 /// returns nil when the page no longer has the item.
-typealias DataUpdate = ((inout [String: JSONValue]) -> Void) -> [String: JSONValue]?
+typealias DataUpdate = @MainActor ((inout [String: JSONValue]) -> Void) -> [String: JSONValue]?
 
-/// What an action runs for: the item the views show when it runs, the update
-/// of that item, and the page, which the context keeps weakly.
+/// What an action runs for: the item the views show when it runs, its data
+/// and the update of it, and the page and the page's tasks, if any, which
+/// asynchronous actions run in. It keeps the page and the tasks weakly, as
+/// the tasks keep it.
 struct ActionTarget {
     let item: ItemInfo
-    let page: AnyObject?
+    weak var page: AnyObject?
+    /// The item's data as the page has it, or nil when the page no longer
+    /// has the item.
+    let data: @MainActor () -> [String: JSONValue]?
     let update: DataUpdate
+    weak var tasks: ActionTasks?
+}
+
+/// The tasks of a page's asynchronous actions, cancelled when the page goes
+/// away and lets go of this.
+final class ActionTasks: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tasks: [Int: Task<Void, Never>] = [:]
+    private var next = 0
+
+    @MainActor
+    func run(_ operation: @escaping @MainActor () async -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        let id = next
+        next += 1
+        // The task runs on the main actor, so it cannot finish before it is kept.
+        tasks[id] = Task { @MainActor [weak self] in
+            await operation()
+            self?.remove(id)
+        }
+    }
+
+    private func remove(_ id: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        tasks[id] = nil
+    }
+
+    deinit {
+        tasks.values.forEach { $0.cancel() }
+    }
+}
+
+/// An action ready to run, with the actions that run after it when it is
+/// asynchronous.
+private struct Step {
+    let action: Action
+    let path: String
+    let onSuccess: [Step]
+    let onFailure: [Step]
 }
 
 /// Runs the actions of a template's events for one item.
 ///
-/// `data` holds the data of the item the views show. `target` returns that
-/// item and its update, or nil when the views have no item; an action takes
-/// them when it runs, so that a change it makes later, after a request for
-/// example, goes to the same item even when the views show another one by
-/// then.
+/// `target` returns the item the views show and its update, or nil when the
+/// views have no item. An event takes them when it runs, so that a change its
+/// actions make later, after a request for example, goes to the same item
+/// even when the views show another one by then.
 @MainActor
 final class ActionRunner {
     private let actions: ActionRegistry
-    private let data: CurrentValueSubject<[String: JSONValue], Never>
     private let target: () -> ActionTarget?
     private let report: (Issue) -> Void
 
     init(
         actions: ActionRegistry,
-        data: CurrentValueSubject<[String: JSONValue], Never>,
         target: @escaping () -> ActionTarget?,
         report: @escaping (Issue) -> Void
     ) {
         self.actions = actions
-        self.data = data
         self.target = target
         self.report = report
     }
@@ -73,23 +115,26 @@ final class ActionRunner {
     /// what runs them in order with the event's value. What cannot run is
     /// reported now and left out.
     func handler(for json: JSONValue, path: String) -> EventAction {
+        let steps = steps(json, path: path)
+        // The views keep the runner through this closure. The runner holds no
+        // view, and `target` must not hold one strongly either.
+        return EventAction { event, source in
+            guard let target = self.target() else { return }
+            self.run(steps[...], event: event, source: source, target: target) {}
+        }
+    }
+
+    private func steps(_ json: JSONValue, path: String) -> [Step] {
         let elements: [(JSONValue, String)]
         if case .array(let array) = json {
             elements = array.enumerated().map { ($1, "\(path)[\($0)]") }
         } else {
             elements = [(json, path)]
         }
-        let parsed = elements.compactMap { json, path in parse(json, path: path).map { ($0, path) } }
-        // The views keep the runner through this closure. The runner holds no
-        // view, and `target` must not hold one strongly either.
-        return EventAction { event, source in
-            for (action, path) in parsed {
-                self.run(action, event: event, source: source, path: path)
-            }
-        }
+        return elements.compactMap { json, path in parse(json, path: path) }
     }
 
-    private func parse(_ json: JSONValue, path: String) -> Action? {
+    private func parse(_ json: JSONValue, path: String) -> Step? {
         guard case .object(var object) = json, case .string(let name)? = object.removeValue(forKey: "action") else {
             report(Issue(.invalidAction, at: path))
             return nil
@@ -97,6 +142,15 @@ final class ActionRunner {
         guard let spec = actions.action(name)?.spec else {
             report(Issue(.unknownAction(name), at: path))
             return nil
+        }
+        // Only an asynchronous action takes them; another reports them as unknown.
+        var branches: [String: [Step]] = [:]
+        if spec.isAsync {
+            for key in ["onSuccess", "onFailure"] {
+                if let json = object.removeValue(forKey: key) {
+                    branches[key] = steps(json, path: "\(path).\(key)")
+                }
+            }
         }
         var parameters: [String: PropertyValue] = [:]
         for (key, value) in object.sorted(by: { $0.key < $1.key }) {
@@ -109,15 +163,54 @@ final class ActionRunner {
                 parameters[key] = parameter
             }
         }
-        return Action(name, parameters: parameters)
+        return Step(
+            action: Action(name, parameters: parameters), path: path,
+            onSuccess: branches["onSuccess"] ?? [], onFailure: branches["onFailure"] ?? []
+        )
     }
 
-    private func run(_ action: Action, event: JSONValue?, source: AnyObject?, path: String) {
-        // Looked up when it runs, with the data as the previous action left it.
-        guard let perform = actions.action(action.name)?.perform, let target = target() else { return }
-        perform(ActionContext(
-            action: action, event: event, data: data.value, target: target, source: source, path: path,
-            report: report
-        ))
+    /// Runs `steps` in order, then `next`. An asynchronous action runs in a
+    /// task, and the rest when it is done; nothing more runs when the page no
+    /// longer has the item by then.
+    private func run(
+        _ steps: ArraySlice<Step>,
+        event: JSONValue?,
+        source: AnyObject?,
+        target: ActionTarget,
+        then next: @escaping @MainActor () -> Void
+    ) {
+        var rest = steps
+        while let step = rest.popFirst() {
+            // Read when each action runs, with the data as the previous action left it.
+            guard let perform = actions.action(step.action.name)?.perform, let data = target.data() else { return }
+            let context = ActionContext(
+                action: step.action, event: event, data: data, target: target, source: source, path: step.path,
+                report: report
+            )
+            switch perform {
+            case .sync(let perform):
+                perform(context)
+            case .async(let perform):
+                let operation: @MainActor () async -> Void = { [weak source] in
+                    let succeeded: Bool
+                    do {
+                        try await perform(context)
+                        succeeded = true
+                    } catch {
+                        succeeded = false
+                    }
+                    self.run(succeeded ? step.onSuccess[...] : step.onFailure[...], event: event, source: source, target: target) {
+                        self.run(rest, event: event, source: source, target: target, then: next)
+                    }
+                }
+                if let tasks = target.tasks {
+                    tasks.run(operation)
+                } else {
+                    Task { @MainActor in await operation() }
+                }
+                return
+            }
+        }
+        next()
     }
 }

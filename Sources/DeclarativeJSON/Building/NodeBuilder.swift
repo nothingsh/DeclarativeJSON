@@ -89,7 +89,7 @@ struct NodeBuilder {
         self.components = components
         self.data = data
         self.report = report
-        runner = ActionRunner(actions: actions, data: data, target: target, report: report)
+        runner = ActionRunner(actions: actions, target: target, report: report)
     }
 
     func build(_ node: Node, path: String) -> UIView {

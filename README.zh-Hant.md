@@ -213,16 +213,26 @@ actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) {
 }
 ```
 
-`update` 也可以在處理閉包回傳之後呼叫，例如請求完成時。修改仍會套用到觸發動作的那個項目，即使它的 cell 此時已經在顯示別的項目；修改作用在項目當時的資料上。頁面裡已經沒有這個項目時（例如 `setDocument` 之後），什麼都不會改。
+動作可以等待，例如等一個請求。用了 `await` 或 `try` 的處理閉包是非同步的：拋出錯誤即失敗。非同步動作接受 `onSuccess` 與 `onFailure`，值是一個動作或動作陣列，在處理閉包回傳或拋出錯誤時執行；陣列裡排在它後面的動作，等它和它的 `onSuccess` 或 `onFailure` 執行完才執行。先改資料，請求失敗再改回來：
+
+```json
+"onTap": [
+  { "action": "toggle", "path": "liked" },
+  { "action": "like", "id": "$id", "onFailure": { "action": "toggle", "path": "liked" } }
+]
+```
 
 ```swift
 actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
-    Task {
-        let liked = await api.like(context.string("id"))
-        context.update { $0["liked"] = .bool(liked) }
-    }
+    // 拋出錯誤時執行 onFailure。
+    let count = try await api.like(context.string("id"))
+    context.update { $0["likes"] = .number(Double(count)) }
 }
 ```
+
+`update` 在處理閉包等待期間和回傳之後都可以呼叫。修改仍會套用到觸發動作的那個項目，即使它的 cell 此時已經在顯示別的項目；修改作用在項目當時的資料上，等待之後執行的動作讀的也是這份資料。頁面裡已經沒有這個項目時（例如 `setDocument` 之後），什麼都不會改，這些動作也不會執行。頁面釋放時，處理閉包的任務會被取消。
+
+其他動作把 `onSuccess` 與 `onFailure` 當作未知屬性回報，0.4.0 之前的版本也是如此。manifest 用 `async` 標出非同步動作。
 
 ## 頁面
 
@@ -289,6 +299,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 版面；`vstack` 與 `hstack` 的 `highlight` |
+| 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure` |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 
@@ -304,7 +315,7 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清單
 
-[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作和它們的參數，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
+[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作、它們的參數和是否非同步，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

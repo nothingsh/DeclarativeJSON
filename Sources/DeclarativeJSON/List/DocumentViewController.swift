@@ -44,6 +44,8 @@ public final class DocumentViewController: UIViewController {
     private var data: [TemplateKey: [String: JSONValue]] = [:]
     private var reportedIssues: Set<Issue> = []
     private var registeredTemplates: Set<String> = []
+    /// The asynchronous actions running for the page, cancelled with it.
+    let tasks = ActionTasks()
 
     public init(
         document: Document,
@@ -191,6 +193,12 @@ public final class DocumentViewController: UIViewController {
             }
         }
         collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    /// The data the page keeps for an item or a header, or nil when the page
+    /// does not have it.
+    func data(_ key: TemplateKey) -> [String: JSONValue]? {
+        data[key]
     }
 
     /// Changes the data the page keeps for an item or a header, shows it in
