@@ -9,11 +9,12 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - `overlay` on any node: nodes in front of the view, at an alignment and an offset, such as a badge on an image. Touches go through an overlay unless a node in it sets an event.
-- `DocumentVersion.minor` 2, for `overlay`, and the types `node` and `list` in the manifest.
+- The `grid` layout for a section, with `columns` and `spacing`.
+- `DocumentVersion.minor` 2, for `overlay` and `grid`, and the types `node` and `list` in the manifest.
 
 ### Changed
 
-- `PropertyType` has the cases `node` and `list`. A `switch` over it has to handle them.
+- `PropertyType` has the cases `node` and `list`, and `Document.Layout` the case `grid`. A `switch` over them has to handle the new cases.
 
 ## [0.2.0] - 2026-10-16
 

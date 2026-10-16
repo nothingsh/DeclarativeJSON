@@ -98,7 +98,7 @@ dependencies: [
   "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
 ```
 
-`layout` 取 `list`，一列占满宽度、高度随内容的 cell；或取 `carousel`，一行横向滚动。默认是 `list`。条目有在整页唯一的 `id`、所用 `template` 的名字和它的 `data`（一个 JSON 对象）。header 同样有 `template` 和 `data`。
+`layout` 取 `list`，一列占满宽度、高度随内容的 cell；取 `carousel`，一行横向滚动；或取 `grid`，每行若干等宽的 cell。默认是 `list`。`grid` 另有 `columns`（每行几个 cell，默认 2）和 `spacing`（cell 之间的横向与纵向间距，默认 0）。一行的高度取这一行里最高的 cell，每个 cell 保持自己的高度，靠这一行的顶部。条目有在整页唯一的 `id`、所用 `template` 的名字和它的 `data`（一个 JSON 对象）。header 同样有 `template` 和 `data`。
 
 模板里的节点是一个对象，带 `type`、它的属性，stack 还带 `children`，还可以带 [`fallback`](#版本)：
 
@@ -288,7 +288,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | --- | --- | --- |
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
-| 2 | 0.3.0 | `overlay` |
+| 2 | 0.3.0 | `overlay`；`grid` 布局 |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 

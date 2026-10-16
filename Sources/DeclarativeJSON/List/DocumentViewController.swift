@@ -6,6 +6,8 @@ import UIKit
 private struct ShownSection {
     let id: String
     let layout: Document.Layout
+    let columns: Int
+    let spacing: Double
     let header: (template: String, path: String)?
 }
 
@@ -120,7 +122,9 @@ public final class DocumentViewController: UIViewController {
                     report(Issue(.unknownTemplate(written.template), at: "\(sectionPath).header"))
                 }
             }
-            sections.append(ShownSection(id: section.id, layout: section.layout, header: header))
+            sections.append(ShownSection(
+                id: section.id, layout: section.layout, columns: section.columns, spacing: section.spacing, header: header
+            ))
             snapshot.appendSections([section.id])
 
             for (itemIndex, item) in section.items.enumerated() {
@@ -237,6 +241,18 @@ public final class DocumentViewController: UIViewController {
                 )
                 section = NSCollectionLayoutSection(group: group)
                 section.orthogonalScrollingBehavior = .continuous
+            case .grid:
+                let height = NSCollectionLayoutDimension.estimated(44)
+                let group = NSCollectionLayoutGroup.horizontal(
+                    layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: height),
+                    subitem: NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(
+                        widthDimension: .fractionalWidth(1 / CGFloat(shown.columns)), heightDimension: height
+                    )),
+                    count: shown.columns
+                )
+                group.interItemSpacing = .fixed(CGFloat(shown.spacing))
+                section = NSCollectionLayoutSection(group: group)
+                section.interGroupSpacing = CGFloat(shown.spacing)
             }
             if shown.header != nil {
                 section.boundarySupplementaryItems = [NSCollectionLayoutBoundarySupplementaryItem(

@@ -98,7 +98,7 @@ dependencies: [
   "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
 ```
 
-`layout` 取 `list`，一欄佔滿寬度、高度隨內容的 cell；或取 `carousel`，一列橫向捲動。預設是 `list`。項目有在整頁唯一的 `id`、所用 `template` 的名稱和它的 `data`（一個 JSON 物件）。header 同樣有 `template` 和 `data`。
+`layout` 取 `list`，一欄佔滿寬度、高度隨內容的 cell；取 `carousel`，一列橫向捲動；或取 `grid`，每列若干等寬的 cell。預設是 `list`。`grid` 另有 `columns`（每列幾個 cell，預設 2）和 `spacing`（cell 之間的橫向與縱向間距，預設 0）。一列的高度取這一列裡最高的 cell，每個 cell 保持自己的高度，靠這一列的頂端。項目有在整頁唯一的 `id`、所用 `template` 的名稱和它的 `data`（一個 JSON 物件）。header 同樣有 `template` 和 `data`。
 
 範本裡的節點是一個物件，帶 `type`、它的屬性，stack 還帶 `children`，還可以帶 [`fallback`](#版本)：
 
@@ -288,7 +288,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | --- | --- | --- |
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
-| 2 | 0.3.0 | `overlay` |
+| 2 | 0.3.0 | `overlay`；`grid` 版面 |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 
