@@ -154,12 +154,12 @@ Every component also takes `width`, `height`, `aspectRatio`, `padding`, `backgro
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
-- A `textfield` has a rounded border. `label` and `textfield` follow Dynamic Type when their font is a text style.
+- A `textfield` has a rounded border. `label` and `textfield` follow Dynamic Type.
 
 ## Values
 
 - **Colors**: a system color name, such as `label`, `secondaryLabel`, `systemBackground`, `separator` or `systemBlue`; `#RRGGBB` or `#RRGGBBAA`; or `{ "light": "#000000", "dark": "#FFFFFF" }`. A border's color is read once and does not follow a later change between light and dark mode.
-- **Fonts**: a text style, `largeTitle`, `title1` to `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1` or `caption2`; or `{ "size": 15, "weight": "semibold" }`, with a weight from `ultraLight` to `black`.
+- **Fonts**: a text style, `largeTitle`, `title1` to `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1` or `caption2`; or `{ "size": 15, "weight": "semibold" }`, with a weight from `ultraLight` to `black`. The size is that at the default text size and grows and shrinks with the user's text size, as body text does.
 - **Insets**, for `padding`: one number for every edge, or an object with any of `top`, `leading`, `bottom`, `trailing`, `horizontal` and `vertical`. An edge wins over its axis, and edges not given are 0.
 - **Lengths**, such as `width` and `minLength`, are finite and not negative; `aspectRatio` is greater than 0.
 

@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- A font written as `{ "size": ..., "weight": ... }` follows Dynamic Type, scaled as body text is, as a text style does and as an Android `sp` does. At the default text size it looks as before; at other sizes text is larger or smaller than before.
 - A `vstack` or `hstack` with `onTap` is highlighted with `systemFill` behind its content while it is pressed, as a list row is. Set `"highlight": false` to keep the old look.
 - `PropertyType` has the cases `node` and `list`, and `Document.Layout` the case `grid`. A `switch` over them has to handle the new cases.
 

@@ -154,12 +154,12 @@ dependencies: [
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
-- `textfield` 带圆角边框。字体是 text style 时，`label` 与 `textfield` 跟随动态字体。
+- `textfield` 带圆角边框。`label` 与 `textfield` 跟随动态字体。
 
 ## 取值
 
 - **颜色**：系统颜色名，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。边框颜色只读取一次，之后在浅色与深色模式间切换时不会跟着变。
-- **字体**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重从 `ultraLight` 到 `black`。
+- **字体**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重从 `ultraLight` 到 `black`。这个字号是默认文字大小下的字号，随用户设置的文字大小放大缩小，与正文相同。
 - **内边距**（`padding`）：一个数字表示四边相同，或一个对象，含 `top`、`leading`、`bottom`、`trailing`、`horizontal`、`vertical` 中任意几个。单边优先于所在的轴，没写的边为 0。
 - **长度**，如 `width` 和 `minLength`，必须是有限且非负的数；`aspectRatio` 必须大于 0。
 

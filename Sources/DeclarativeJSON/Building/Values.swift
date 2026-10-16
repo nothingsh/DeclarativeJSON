@@ -38,9 +38,9 @@ public extension BuildContext {
         value(name, expected: .color, read: UIColor.parse)
     }
 
-    /// A font: a text style such as `"headline"`, which follows Dynamic Type,
-    /// or an object with a `"size"` and an optional `"weight"` such as
-    /// `"semibold"`.
+    /// A font: a text style such as `"headline"`, or an object with a
+    /// `"size"` and an optional `"weight"` such as `"semibold"`, whose size is
+    /// that at the default text size. Both follow Dynamic Type.
     func font(_ name: String) -> AnyPublisher<UIFont?, Never>? {
         value(name, expected: .font, read: UIFont.parse)
     }
@@ -121,7 +121,8 @@ private extension UIFont {
                 return nil
             }
             guard Set(object.keys).isSubset(of: ["size", "weight"]) else { return nil }
-            return .systemFont(ofSize: CGFloat(size), weight: weight)
+            // Scaled as body text is, as an Android sp is.
+            return UIFontMetrics.default.scaledFont(for: .systemFont(ofSize: CGFloat(size), weight: weight))
         default:
             return nil
         }

@@ -154,12 +154,12 @@ dependencies: [
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
-- `textfield` 有圓角邊框。字型是 text style 時，`label` 與 `textfield` 會跟著動態字級調整。
+- `textfield` 有圓角邊框。`label` 與 `textfield` 會跟著動態字級調整。
 
 ## 取值
 
 - **顏色**：系統顏色名稱，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。邊框顏色只讀取一次，之後在淺色與深色模式間切換時不會跟著變。
-- **字型**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重從 `ultraLight` 到 `black`。
+- **字型**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重從 `ultraLight` 到 `black`。這個字級是預設文字大小下的字級，會隨使用者設定的文字大小放大縮小，與內文相同。
 - **內距**（`padding`）：一個數字表示四邊相同，或一個物件，含 `top`、`leading`、`bottom`、`trailing`、`horizontal`、`vertical` 中任意幾個。單邊優先於所在的軸，沒寫的邊為 0。
 - **長度**，如 `width` 和 `minLength`，必須是有限且非負的數；`aspectRatio` 必須大於 0。
 
