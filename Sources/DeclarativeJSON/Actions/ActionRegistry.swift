@@ -94,7 +94,8 @@ public struct ActionRegistry {
 }
 
 /// What an action's handler gets: its parameters, resolved against the item
-/// data when the action runs, the event's value, and the item data.
+/// data when the action runs, the event's value, the item data, and which
+/// item it runs for.
 @MainActor
 public final class ActionContext {
     /// The parameters, with `$` references resolved. A reference to a
@@ -105,6 +106,13 @@ public final class ActionContext {
     /// The item's data when the action ran, and after each `update`, as the
     /// page has it then.
     public private(set) var data: [String: JSONValue]
+    /// The item or the header the action runs for.
+    public let item: ItemInfo
+
+    /// The view that sent the event, read as `sourceView`.
+    weak var source: AnyObject?
+    /// The page that shows the item, read as `page`.
+    weak var owner: AnyObject?
 
     private let written: Set<String>
     private let path: String
@@ -115,16 +123,20 @@ public final class ActionContext {
         action: Action,
         event: JSONValue?,
         data: [String: JSONValue],
+        target: ActionTarget,
+        source: AnyObject?,
         path: String,
-        send: @escaping DataUpdate,
         report: @escaping (Issue) -> Void
     ) {
         parameters = action.parameters.compactMapValues { $0.resolve(in: data) }
         written = Set(action.parameters.keys)
         self.event = event
         self.data = data
+        item = target.item
+        self.source = source
+        owner = target.page
         self.path = path
-        self.send = send
+        send = target.update
         issue = report
     }
 

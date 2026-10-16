@@ -38,7 +38,7 @@ public final class DocumentViewController: UIViewController {
 
     private var dataSource: UICollectionViewDiffableDataSource<String, String>?
     private var sections: [ShownSection] = []
-    private var items: [String: (template: String, path: String)] = [:]
+    private var items: [String: (template: String, path: String, section: String)] = [:]
     private var data: [TemplateKey: [String: JSONValue]] = [:]
     private var reportedIssues: Set<Issue> = []
     private var registeredTemplates: Set<String> = []
@@ -131,7 +131,7 @@ public final class DocumentViewController: UIViewController {
                     report(Issue(.unknownTemplate(item.template), at: itemPath))
                 } else {
                     register(item.template)
-                    items[item.id] = (item.template, "templates.\(item.template)")
+                    items[item.id] = (item.template, "templates.\(item.template)", section.id)
                     data[.item(item.id)] = item.data
                     snapshot.appendItems([item.id])
                 }
@@ -158,7 +158,8 @@ public final class DocumentViewController: UIViewController {
         guard let cell = cell as? TemplateCell, let item = items[id],
               let template = document.templates[item.template] else { return }
         cell.host.show(
-            template, path: item.path, key: .item(id), data: data[.item(id)] ?? [:], in: cell.contentView, page: self
+            template, path: item.path, item: ItemInfo(id: id, section: item.section, template: item.template),
+            data: data[.item(id)] ?? [:], in: cell.contentView, page: self
         )
     }
 
@@ -166,8 +167,8 @@ public final class DocumentViewController: UIViewController {
         guard let view = view as? TemplateHeader, let header = section.header,
               let template = document.templates[header.template] else { return }
         view.host.show(
-            template, path: header.path, key: .header(section.id), data: data[.header(section.id)] ?? [:],
-            in: view, page: self
+            template, path: header.path, item: ItemInfo(id: nil, section: section.id, template: header.template),
+            data: data[.header(section.id)] ?? [:], in: view, page: self
         )
     }
 

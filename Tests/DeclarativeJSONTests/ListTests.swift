@@ -210,6 +210,46 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(issues, [])
     }
 
+    func testAnActionKnowsTheItemShownWhenItRunsTheViewThatSentItAndThePage() throws {
+        var contexts: [ActionContext] = []
+        var actions = ActionRegistry.standard
+        actions.register(ActionSpec("record")) { contexts.append($0) }
+        func page(_ section: String, _ item: String) -> String {
+            """
+            { "v": 1,
+              "templates": {
+                "title": { "type": "button", "title": "Title", "onTap": { "action": "record" } },
+                "row": { "type": "button", "title": "Row", "onTap": { "action": "record" } }
+              },
+              "sections": [ { "id": "\(section)", "header": { "template": "title" },
+                "items": [ { "id": "\(item)", "template": "row" } ] } ] }
+            """
+        }
+        let controller = try show(page("s", "a"), actions: actions)
+        let built = views(UIButton.self, in: cell(controller, 0)).first
+        // The cell's views, built for item a, now show item b.
+        controller.setDocument(try document(page("t", "b")), animatingDifferences: false)
+        controller.view.layoutIfNeeded()
+        let row = try XCTUnwrap(views(UIButton.self, in: cell(controller, 0)).first)
+        XCTAssertIdentical(row, built)
+        let header = try XCTUnwrap(views(UIButton.self, in: controller.collectionView.supplementaryView(
+            forElementKind: UICollectionView.elementKindSectionHeader, at: IndexPath(item: 0, section: 0)
+        )).first)
+
+        row.fire(.touchUpInside)
+        header.fire(.touchUpInside)
+
+        XCTAssertEqual(contexts.map(\.item), [
+            ItemInfo(id: "b", section: "t", template: "row"),
+            ItemInfo(id: nil, section: "t", template: "title"),
+        ])
+        XCTAssertEqual(contexts.map(\.item.isHeader), [false, true])
+        XCTAssertIdentical(contexts.first?.sourceView, row)
+        XCTAssertIdentical(contexts.last?.sourceView, header)
+        XCTAssertIdentical(contexts.first?.page, controller)
+        XCTAssertEqual(issues, [])
+    }
+
     func testCellsBuildTheirTemplateOnceAndANewDocumentSendsItsData() throws {
         var builds = 0
         var components = ComponentRegistry<UIView>.standard

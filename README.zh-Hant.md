@@ -195,6 +195,17 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` 用 `string`、`url`、`bool` 和 `number` 讀取參數，型別不對時會回報；`parameters` 給出全部參數。`event` 是事件的值，`data` 是項目的資料，`update { $0["key"] = … }` 像 `set` 一樣修改資料。
 
+`item` 說明動作是為哪個項目執行的：它的 `id`、`section` 和 `template`；section 的 header 則 `isHeader` 為 true、沒有 `id`。`sourceView` 是發出事件的視圖，`page` 是 `DocumentViewController`，用來從它們彈出畫面：
+
+```swift
+actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) { context in
+    guard let url = context.url("url"), let page = context.page else { return }
+    let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    sheet.popoverPresentationController?.sourceView = context.sourceView
+    page.present(sheet, animated: true)
+}
+```
+
 `update` 也可以在處理閉包回傳之後呼叫，例如請求完成時。修改仍會套用到觸發動作的那個項目，即使它的 cell 此時已經在顯示別的項目；修改作用在項目當時的資料上。頁面裡已經沒有這個項目時（例如 `setDocument` 之後），什麼都不會改。
 
 ```swift
@@ -232,7 +243,7 @@ components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.
 let controller = DocumentViewController(document: document, components: components, actions: actions)
 ```
 
-`BuildContext` 把每個屬性讀成 publisher，節點沒設定該屬性時回傳 nil。常數送出一次；引用隨項目資料的每個值送出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 讀取上文的各種型別，`choice` 讀取一組字串之一，`value` 讀取其他任何東西。`onValue` 把屬性套用到視圖，`onEvent` 在視圖的某個 publisher 上執行 `context.action(.onTap)`。spec 寫了 `acceptsChildren: true` 時，子節點已替你建好，放在 `context.children`。通用屬性會作用在你回傳的視圖上。
+`BuildContext` 把每個屬性讀成 publisher，節點沒設定該屬性時回傳 nil。常數送出一次；引用隨項目資料的每個值送出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 讀取上文的各種型別，`choice` 讀取一組字串之一，`value` 讀取其他任何東西。`onValue` 把屬性套用到視圖，`onEvent` 在視圖的某個 publisher 上執行 `context.action(.onTap)`，並把這個視圖當作動作的 `sourceView`。要自己執行動作，就用事件的值和視圖呼叫 `context.action` 回傳的值：`action(.bool(isOn), source: view)`。spec 寫了 `acceptsChildren: true` 時，子節點已替你建好，放在 `context.children`。通用屬性會作用在你回傳的視圖上。
 
 註冊已有的型別會取代它。
 
