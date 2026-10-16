@@ -1,0 +1,121 @@
+{
+  "cases": [
+    {
+      "name": "Operations apply in order and skip what they cannot find or show",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label", "text": "$title" } },
+        "sections": [
+          { "id": "s", "items": [ { "id": "a", "template": "row" }, { "id": "b", "template": "row" }, { "id": "c", "template": "row" } ] },
+          { "id": "t", "items": [ { "id": "d", "template": "row" } ] },
+          { "id": "u", "items": [ { "id": "e", "template": "row" } ] }
+        ]
+      },
+      "patches": [ {
+        "v": 1,
+        "templates": { "card": { "type": "label", "text": "$title" } },
+        "operations": [
+          { "op": "moveItems" },
+          { "op": "replaceItems", "items": [ { "id": "b", "template": "card" }, { "id": "z", "template": "row" } ] },
+          { "op": "insertItems", "section": "s", "after": "a", "items": [
+            { "id": "n1", "template": "row" }, { "id": "d", "template": "row" }, { "id": "n2", "template": "card" } ] },
+          { "op": "insertItems", "section": "s", "after": "gone", "items": [ { "id": "n3", "template": "row" } ] },
+          { "op": "removeItems", "ids": ["c", "gone"] },
+          { "op": "replaceSections", "sections": [ { "id": "t", "header": { "template": "banner" },
+            "items": [ { "id": "d2", "template": "row" }, { "id": "a", "template": "row" } ] } ] },
+          { "op": "insertSections", "after": "s", "sections": [ { "id": "v", "items": [ { "id": "f", "template": "nope" } ] },
+                                                               { "id": "s", "items": [] } ] },
+          { "op": "removeSections", "ids": ["u"] }
+        ]
+      } ],
+      "expect": {
+        "sections": [
+          { "id": "s", "items": ["a", "n1", "n2", "b"] },
+          { "id": "v", "items": [] },
+          { "id": "t", "items": ["d2"] }
+        ],
+        "issues": [
+          { "kind": "unknownOperation", "operation": "moveItems", "at": "operations[0]" },
+          { "kind": "unknownID", "id": "z", "at": "operations[1].items[1]" },
+          { "kind": "duplicateID", "id": "d", "at": "operations[2].items[1]" },
+          { "kind": "unknownID", "id": "gone", "at": "operations[3].after" },
+          { "kind": "unknownID", "id": "gone", "at": "operations[4].ids[1]" },
+          { "kind": "unknownTemplate", "template": "banner", "at": "operations[5].sections[0].header" },
+          { "kind": "duplicateID", "id": "a", "at": "operations[5].sections[0].items[1]" },
+          { "kind": "unknownTemplate", "template": "nope", "at": "operations[6].sections[0].items[0]" },
+          { "kind": "duplicateID", "id": "s", "at": "operations[6].sections[1]" }
+        ]
+      }
+    },
+    {
+      "name": "Without after, inserted items and sections go first",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label" } },
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "patches": [ {
+        "v": 1,
+        "operations": [
+          { "op": "insertItems", "section": "s", "items": [ { "id": "b", "template": "row" }, { "id": "c", "template": "row" } ] },
+          { "op": "insertSections", "sections": [ { "id": "t", "items": [ { "id": "d", "template": "row" } ] } ] }
+        ]
+      } ],
+      "expect": {
+        "sections": [ { "id": "t", "items": ["d"] }, { "id": "s", "items": ["b", "c", "a"] } ],
+        "issues": []
+      }
+    },
+    {
+      "name": "Appending adds items at the end and replaces the section's more",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label" } },
+        "sections": [
+          { "id": "s", "more": { "cursor": 2 }, "items": [ { "id": "a", "template": "row" } ] },
+          { "id": "t", "more": "t2", "items": [] },
+          { "id": "u", "more": null, "items": [] }
+        ]
+      },
+      "patches": [
+        { "v": 1, "operations": [
+          { "op": "appendItems", "section": "s", "items": [ { "id": "b", "template": "row" }, { "id": "a", "template": "row" } ],
+            "more": { "cursor": 3 } },
+          { "op": "appendItems", "section": "gone", "items": [] }
+        ] },
+        { "v": 1, "operations": [
+          { "op": "appendItems", "section": "t", "items": [ { "id": "c", "template": "row" } ] }
+        ] }
+      ],
+      "expect": {
+        "sections": [
+          { "id": "s", "items": ["a", "b"], "more": { "cursor": 3 } },
+          { "id": "t", "items": ["c"], "more": null },
+          { "id": "u", "items": [], "more": null }
+        ],
+        "issues": [
+          { "kind": "duplicateID", "id": "a", "at": "operations[0].items[1]" },
+          { "kind": "unknownID", "id": "gone", "at": "operations[1].section" }
+        ]
+      }
+    },
+    {
+      "name": "A replaced section keeps its place and takes the new header, items and more",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label" }, "title": { "type": "label" } },
+        "sections": [
+          { "id": "s", "header": { "template": "title" }, "more": "s2", "items": [ { "id": "a", "template": "row" } ] },
+          { "id": "t", "items": [] }
+        ]
+      },
+      "patches": [ { "v": 1, "operations": [
+        { "op": "replaceSections", "sections": [ { "id": "s", "items": [ { "id": "b", "template": "row" } ] } ] }
+      ] } ],
+      "expect": {
+        "sections": [ { "id": "s", "items": ["b"], "header": null, "more": null }, { "id": "t", "items": [] } ],
+        "issues": []
+      }
+    }
+  ]
+}

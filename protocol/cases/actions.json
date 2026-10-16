@@ -1,0 +1,211 @@
+{
+  "cases": [
+    {
+      "name": "Actions run in order, each reading the data as the one before left it",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          { "action": "toggle", "path": "liked" },
+          { "action": "set", "path": "copy", "value": "$liked" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "liked": false } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": { "data": { "a": { "liked": true, "copy": true } }, "issues": [] }
+    },
+    {
+      "name": "set without a value takes the value of the event",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "vstack", "children": [
+          { "type": "textfield", "text": "$name", "onChange": { "action": "set", "path": "name" } },
+          { "type": "switch", "isOn": "$enabled", "onChange": { "action": "set", "path": "enabled" } },
+          { "type": "slider", "value": "$volume", "onChange": { "action": "set", "path": "volume" } }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "enabled": false } } ] } ]
+      },
+      "steps": [
+        { "item": "a", "node": "templates.row.children[0]", "event": "onChange", "value": "Ada" },
+        { "item": "a", "node": "templates.row.children[1]", "event": "onChange", "value": true },
+        { "item": "a", "node": "templates.row.children[2]", "event": "onChange", "value": 0.5 }
+      ],
+      "expect": { "data": { "a": { "name": "Ada", "enabled": true, "volume": 0.5 } }, "issues": [] }
+    },
+    {
+      "name": "set to a reference to a missing key removes the key",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": { "action": "set", "path": "title", "value": "$missing" } } },
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "title": "A", "count": 1 } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": { "data": { "a": { "count": 1 } }, "issues": [] }
+    },
+    {
+      "name": "set without a value from an event without one does nothing and reports it",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": { "action": "set", "path": "title" } } },
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "title": "A" } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": {
+        "data": { "a": { "title": "A" } },
+        "issues": [ { "kind": "missingParameter", "parameter": "value", "at": "templates.row.onTap" } ]
+      }
+    },
+    {
+      "name": "toggle makes a missing key true, and leaves a value that is not a Bool and reports it",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "hstack", "children": [
+          { "type": "button", "onTap": { "action": "toggle", "path": "flag" } },
+          { "type": "button", "onTap": { "action": "toggle", "path": "liked" } }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "liked": "yes" } } ] } ]
+      },
+      "steps": [
+        { "item": "a", "node": "templates.row.children[0]", "event": "onTap" },
+        { "item": "a", "node": "templates.row.children[1]", "event": "onTap" },
+        { "item": "a", "node": "templates.row.children[0]", "event": "onTap" }
+      ],
+      "expect": {
+        "data": { "a": { "flag": false, "liked": "yes" } },
+        "issues": [ { "kind": "typeMismatch", "property": "liked", "expected": { "type": "bool" }, "at": "templates.row.children[1].onTap" } ]
+      }
+    },
+    {
+      "name": "An action changes only the item it runs for",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": { "action": "toggle", "path": "liked" } } },
+        "sections": [ { "id": "s", "items": [
+          { "id": "a", "template": "row", "data": { "liked": false } },
+          { "id": "b", "template": "row", "data": { "liked": false } }
+        ] } ]
+      },
+      "steps": [ { "item": "b", "node": "templates.row", "event": "onTap" } ],
+      "expect": { "data": { "a": { "liked": false }, "b": { "liked": true } }, "issues": [] }
+    },
+    {
+      "name": "An action in a header changes the header's data",
+      "document": {
+        "v": 1,
+        "templates": { "title": { "type": "hstack", "onTap": { "action": "toggle", "path": "expanded" }, "children": [] } },
+        "sections": [ { "id": "s", "header": { "template": "title", "data": { "expanded": false } }, "items": [] } ]
+      },
+      "steps": [ { "header": "s", "node": "templates.title", "event": "onTap" } ],
+      "expect": { "headers": { "s": { "expanded": true } }, "issues": [] }
+    },
+    {
+      "name": "An event of a node in an overlay or a fallback runs",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "vstack", "children": [
+          { "type": "label", "overlay": { "alignment": "topTrailing",
+            "content": { "type": "button", "onTap": { "action": "toggle", "path": "badge" } } } },
+          { "type": "rating", "fallback": { "type": "button", "onTap": { "action": "toggle", "path": "fallback" } } }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "steps": [
+        { "item": "a", "node": "templates.row.children[0].overlay.content", "event": "onTap" },
+        { "item": "a", "node": "templates.row.children[1].fallback", "event": "onTap" }
+      ],
+      "expect": { "data": { "a": { "badge": true, "fallback": true } }, "issues": [] }
+    },
+    {
+      "name": "navigate and openURL report that no handler is registered",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          { "action": "navigate", "url": "$detailURL" },
+          { "action": "openURL", "url": "https://example.com" },
+          { "action": "toggle", "path": "opened" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "detailURL": "app://product/1" } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": {
+        "data": { "a": { "detailURL": "app://product/1", "opened": true } },
+        "issues": [
+          { "kind": "unhandledAction", "action": "navigate", "at": "templates.row.onTap[0]" },
+          { "kind": "unhandledAction", "action": "openURL", "at": "templates.row.onTap[1]" }
+        ]
+      }
+    },
+    {
+      "name": "navigate and openURL hand the resolved URL to the app's handler",
+      "handlers": ["navigate", "openURL"],
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          { "action": "navigate", "url": "$detailURL" },
+          { "action": "openURL", "url": "https://example.com/help" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "detailURL": "app://product/1" } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": {
+        "handed": [
+          { "action": "navigate", "url": "app://product/1" },
+          { "action": "openURL", "url": "https://example.com/help" }
+        ],
+        "issues": []
+      }
+    },
+    {
+      "name": "The actions that can run run, and the others are reported",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          "toggle",
+          { "action": "share" },
+          { "action": "toggle", "path": "$key" },
+          { "action": "set", "path": "count", "value": 1 }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": {
+        "data": { "a": { "count": 1 } },
+        "issues": [
+          { "kind": "invalidAction", "at": "templates.row.onTap[0]" },
+          { "kind": "unknownAction", "action": "share", "at": "templates.row.onTap[1]" },
+          { "kind": "referenceNotAccepted", "property": "path", "at": "templates.row.onTap[2]" },
+          { "kind": "missingParameter", "parameter": "path", "at": "templates.row.onTap[2]" }
+        ]
+      }
+    },
+    {
+      "name": "After an asynchronous action, onSuccess runs, then the actions after it",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          { "action": "toggle", "path": "liked" },
+          { "action": "succeed",
+            "onSuccess": { "action": "set", "path": "result", "value": "saved" },
+            "onFailure": { "action": "set", "path": "result", "value": "failed" } },
+          { "action": "set", "path": "after", "value": "$result" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "liked": false } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": { "data": { "a": { "liked": true, "result": "saved", "after": "saved" } }, "issues": [] }
+    },
+    {
+      "name": "After an asynchronous action fails, onFailure runs, then the actions after it",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          { "action": "toggle", "path": "liked" },
+          { "action": "fail", "onFailure": [ { "action": "toggle", "path": "liked" }, { "action": "set", "path": "result", "value": "failed" } ] },
+          { "action": "set", "path": "after", "value": "$liked" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "liked": false } } ] } ]
+      },
+      "steps": [ { "item": "a", "node": "templates.row", "event": "onTap" } ],
+      "expect": { "data": { "a": { "liked": false, "result": "failed", "after": false } }, "issues": [] }
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "cases": [
+    {
+      "name": "A document with templates and sections decodes",
+      "input": {
+        "v": 1,
+        "templates": { "row": { "type": "label", "text": "$title" } },
+        "sections": [ { "id": "s", "layout": "carousel", "header": { "template": "row" },
+                        "items": [ { "id": "a", "template": "row", "data": { "title": "A" } } ] } ]
+      },
+      "expect": "decodes"
+    },
+    {
+      "name": "Keys the format does not have are ignored",
+      "input": {
+        "v": 1, "generatedAt": "2026-10-16",
+        "templates": {},
+        "sections": [ { "id": "s", "note": "x", "items": [ { "id": "a", "template": "row", "weight": 2 } ] } ]
+      },
+      "expect": "decodes"
+    },
+    {
+      "name": "A section without items, an item without data and a header without data decode",
+      "input": {
+        "v": 1, "templates": {},
+        "sections": [ { "id": "s", "header": { "template": "title" } }, { "id": "t", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "expect": "decodes"
+    },
+    {
+      "name": "A template that is not a node does not stop the document from decoding",
+      "input": { "v": 1, "templates": { "broken": "label", "row": [] }, "sections": [] },
+      "expect": "decodes"
+    },
+    {
+      "name": "Another version fails",
+      "input": { "v": 2, "templates": {}, "sections": [] },
+      "expect": "unsupportedVersion"
+    },
+    {
+      "name": "The version is read before anything else",
+      "input": { "v": 2, "sections": "none" },
+      "expect": "unsupportedVersion"
+    },
+    {
+      "name": "A document without a version fails",
+      "input": { "templates": {}, "sections": [] },
+      "expect": "invalid"
+    },
+    {
+      "name": "A version that is not an integer fails",
+      "input": { "v": "1", "templates": {}, "sections": [] },
+      "expect": "invalid"
+    },
+    {
+      "name": "A document without templates fails",
+      "input": { "v": 1, "sections": [] },
+      "expect": "invalid"
+    },
+    {
+      "name": "Templates that are not an object fail",
+      "input": { "v": 1, "templates": [], "sections": [] },
+      "expect": "invalid"
+    },
+    {
+      "name": "A document without sections fails",
+      "input": { "v": 1, "templates": {} },
+      "expect": "invalid"
+    },
+    {
+      "name": "A section without an id fails",
+      "input": { "v": 1, "templates": {}, "sections": [ { "items": [] } ] },
+      "expect": "invalid"
+    },
+    {
+      "name": "An item without a template fails",
+      "input": { "v": 1, "templates": {}, "sections": [ { "id": "s", "items": [ { "id": "a" } ] } ] },
+      "expect": "invalid"
+    },
+    {
+      "name": "An item id that is not a string fails",
+      "input": { "v": 1, "templates": {}, "sections": [ { "id": "s", "items": [ { "id": 1, "template": "row" } ] } ] },
+      "expect": "invalid"
+    },
+    {
+      "name": "A header without a template fails",
+      "input": { "v": 1, "templates": {}, "sections": [ { "id": "s", "header": { "data": {} } } ] },
+      "expect": "invalid"
+    },
+    {
+      "name": "Item data that is not an object fails",
+      "input": { "v": 1, "templates": {}, "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": [] } ] } ] },
+      "expect": "invalid"
+    },
+    {
+      "name": "Text that is not JSON fails",
+      "text": "{ \"v\": 1, ",
+      "expect": "invalid"
+    },
+    {
+      "name": "A patch with operations decodes",
+      "patch": true,
+      "input": {
+        "v": 1,
+        "templates": { "notice": { "type": "label", "text": "$text" } },
+        "operations": [
+          { "op": "replaceItems", "items": [ { "id": "a", "template": "notice" } ] },
+          { "op": "insertItems", "section": "s", "after": "a", "items": [] },
+          { "op": "appendItems", "section": "s", "items": [], "more": { "cursor": 3 } },
+          { "op": "removeItems", "ids": ["b"] },
+          { "op": "replaceSections", "sections": [ { "id": "s" } ] },
+          { "op": "insertSections", "sections": [] },
+          { "op": "removeSections", "ids": [] }
+        ]
+      },
+      "expect": "decodes"
+    },
+    {
+      "name": "A patch with an operation this version does not know decodes",
+      "patch": true,
+      "input": { "v": 1, "operations": [ { "op": "moveItems", "ids": ["a"] } ] },
+      "expect": "decodes"
+    },
+    {
+      "name": "A patch of another version fails",
+      "patch": true,
+      "input": { "v": 2, "operations": [] },
+      "expect": "unsupportedVersion"
+    },
+    {
+      "name": "A patch without operations fails",
+      "patch": true,
+      "input": { "v": 1 },
+      "expect": "invalid"
+    },
+    {
+      "name": "An operation without op fails",
+      "patch": true,
+      "input": { "v": 1, "operations": [ { "ids": ["a"] } ] },
+      "expect": "invalid"
+    },
+    {
+      "name": "An operation without what it takes fails",
+      "patch": true,
+      "input": { "v": 1, "operations": [ { "op": "insertItems", "items": [] } ] },
+      "expect": "invalid"
+    }
+  ]
+}

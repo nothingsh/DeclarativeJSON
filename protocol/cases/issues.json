@@ -1,0 +1,183 @@
+{
+  "cases": [
+    {
+      "name": "Template content that is not a node is left out and reported",
+      "document": {
+        "v": 1,
+        "templates": {
+          "broken": "label",
+          "row": { "type": "vstack", "children": [
+            "label",
+            { "text": "no type" },
+            { "type": "label", "children": {} },
+            { "type": "label", "fallback": "label" }
+          ]}
+        },
+        "sections": [ { "id": "s", "layout": "masonry", "items": [] } ]
+      },
+      "issues": [
+        { "kind": "invalidNode", "at": "templates.broken" },
+        { "kind": "invalidNode", "at": "templates.row.children[0]" },
+        { "kind": "invalidNode", "at": "templates.row.children[1]" },
+        { "kind": "invalidChildren", "at": "templates.row.children[2]" },
+        { "kind": "invalidNode", "at": "templates.row.children[3].fallback" },
+        { "kind": "unknownLayout", "layout": "masonry", "at": "sections[0]" }
+      ]
+    },
+    {
+      "name": "An unknown type is reported, and so is an unknown fallback",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "vstack", "children": [
+          { "type": "rating", "value": "$score", "fallback": { "type": "label", "text": "$scoreText" } },
+          { "type": "chart", "fallback": { "type": "sparkline", "fallback": { "type": "label", "text": "No chart" } } },
+          { "type": "label", "text": "Known", "fallback": { "type": "gauge" } }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "scoreText": "4.5" } } ] } ]
+      },
+      "issues": [
+        { "kind": "unknownType", "type": "rating", "at": "templates.row.children[0]" },
+        { "kind": "unknownType", "type": "chart", "at": "templates.row.children[1]" },
+        { "kind": "unknownType", "type": "sparkline", "at": "templates.row.children[1].fallback" }
+      ]
+    },
+    {
+      "name": "Unknown properties and events, children of a leaf and references to constant-only properties are ignored",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "vstack", "children": [
+          { "type": "label", "text": "Hi", "colour": "red", "onTap": { "action": "toggle", "path": "x" },
+            "children": [ { "type": "label" } ] },
+          { "type": "spacer", "minLength": "$gap" },
+          { "type": "button", "onTap": "$tap" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "issues": [
+        { "kind": "unknownProperty", "property": "colour", "at": "templates.row.children[0]" },
+        { "kind": "unknownProperty", "property": "onTap", "at": "templates.row.children[0]" },
+        { "kind": "unexpectedChildren", "at": "templates.row.children[0]" },
+        { "kind": "referenceNotAccepted", "property": "minLength", "at": "templates.row.children[1]" },
+        { "kind": "referenceNotAccepted", "property": "onTap", "at": "templates.row.children[2]" }
+      ]
+    },
+    {
+      "name": "A value of the wrong type, written or referenced, is reported; a missing or null reference is not",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label", "text": "$title", "numberOfLines": "$lines", "width": -5,
+                                "textColor": "#F00", "font": { "size": 15, "weight": "extraBold" },
+                                "isHidden": "$hidden", "alpha": "$alpha" } },
+        "sections": [ { "id": "s", "items": [
+          { "id": "a", "template": "row", "data": { "lines": 2, "hidden": null } },
+          { "id": "b", "template": "row", "data": { "title": 7, "lines": "three", "alpha": 0.5 } }
+        ] } ]
+      },
+      "issues": [
+        { "kind": "typeMismatch", "property": "text", "expected": { "type": "string" }, "at": "templates.row" },
+        { "kind": "typeMismatch", "property": "numberOfLines", "expected": { "type": "integer" }, "at": "templates.row" },
+        { "kind": "typeMismatch", "property": "width", "expected": { "type": "number" }, "at": "templates.row" },
+        { "kind": "typeMismatch", "property": "textColor", "expected": { "type": "color" }, "at": "templates.row" },
+        { "kind": "typeMismatch", "property": "font", "expected": { "type": "font" }, "at": "templates.row" }
+      ]
+    },
+    {
+      "name": "An overlay that is not valid is reported and left out",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label", "overlay": [
+          { "alignment": "fill", "offset": { "x": 4 }, "content": { "type": "label" } },
+          { "alignment": "middle", "content": { "type": "label" } },
+          { "content": "badge" },
+          { "alignment": "bottom", "content": { "type": "label", "text": "Kept" } }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "issues": [
+        { "kind": "typeMismatch", "property": "overlay", "at": "templates.row", "expected": {
+          "type": "list",
+          "element": { "type": "object", "properties": {
+            "alignment": { "type": "oneOf", "values": ["fill", "center", "top", "bottom", "leading", "trailing",
+                                                       "topLeading", "topTrailing", "bottomLeading", "bottomTrailing"] },
+            "content": { "type": "node" },
+            "offset": { "type": "object", "properties": { "x": { "type": "number" }, "y": { "type": "number" } } }
+          } }
+        } },
+        { "kind": "invalidNode", "at": "templates.row.overlay[2].content" }
+      ]
+    },
+    {
+      "name": "Actions that cannot run are reported when their node is built",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "button", "onTap": [
+          "toggle",
+          { "action": "share" },
+          { "action": "toggle", "path": "$key", "animated": true, "onFailure": { "action": "share" } },
+          { "action": "set", "path": "count", "value": 1 }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ]
+      },
+      "issues": [
+        { "kind": "invalidAction", "at": "templates.row.onTap[0]" },
+        { "kind": "unknownAction", "action": "share", "at": "templates.row.onTap[1]" },
+        { "kind": "unknownProperty", "property": "animated", "at": "templates.row.onTap[2]" },
+        { "kind": "unknownProperty", "property": "onFailure", "at": "templates.row.onTap[2]" },
+        { "kind": "referenceNotAccepted", "property": "path", "at": "templates.row.onTap[2]" }
+      ]
+    },
+    {
+      "name": "Duplicate ids and unknown templates are left out",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "label", "text": "$title" } },
+        "sections": [
+          { "id": "s", "header": { "template": "banner" }, "items": [
+            { "id": "a", "template": "row" },
+            { "id": "a", "template": "row" },
+            { "id": "b", "template": "card" },
+            { "id": "c", "template": "row" }
+          ]},
+          { "id": "s", "items": [ { "id": "d", "template": "row" } ] },
+          { "id": "t", "items": [ { "id": "c", "template": "row" } ] }
+        ]
+      },
+      "issues": [
+        { "kind": "unknownTemplate", "template": "banner", "at": "sections[0].header" },
+        { "kind": "duplicateID", "id": "a", "at": "sections[0].items[1]" },
+        { "kind": "unknownTemplate", "template": "card", "at": "sections[0].items[2]" },
+        { "kind": "duplicateID", "id": "s", "at": "sections[1]" },
+        { "kind": "duplicateID", "id": "c", "at": "sections[2].items[0]" }
+      ]
+    },
+    {
+      "name": "A grid's columns and spacing of the wrong type take their defaults",
+      "document": {
+        "v": 1,
+        "templates": {},
+        "sections": [
+          { "id": "s", "layout": "grid", "columns": 0, "spacing": "wide", "items": [] },
+          { "id": "t", "layout": "grid", "columns": 2.5, "spacing": -1, "items": [] },
+          { "id": "u", "layout": "list", "columns": "ignored", "items": [] }
+        ]
+      },
+      "issues": [
+        { "kind": "typeMismatch", "property": "columns", "expected": { "type": "integer" }, "at": "sections[0]" },
+        { "kind": "typeMismatch", "property": "spacing", "expected": { "type": "number" }, "at": "sections[0]" },
+        { "kind": "typeMismatch", "property": "columns", "expected": { "type": "integer" }, "at": "sections[1]" },
+        { "kind": "typeMismatch", "property": "spacing", "expected": { "type": "number" }, "at": "sections[1]" }
+      ]
+    },
+    {
+      "name": "A header's template is built with the header's data",
+      "document": {
+        "v": 1,
+        "templates": { "title": { "type": "label", "text": "$text", "numberOfLines": "$lines" } },
+        "sections": [ { "id": "s", "header": { "template": "title", "data": { "text": "Today", "lines": true } }, "items": [] } ]
+      },
+      "issues": [
+        { "kind": "typeMismatch", "property": "numberOfLines", "expected": { "type": "integer" }, "at": "templates.title" }
+      ]
+    }
+  ]
+}
