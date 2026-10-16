@@ -412,6 +412,8 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 let manifest = try Manifest(components: components, actions: actions).encoded()
 ```
 
+[`protocol/`](protocol/README.md) 用不依赖 iOS 的说法描述格式本身，写给后端和其他平台的渲染器，并附有每个渲染器都要跑的[共用用例](protocol/cases/README.md)。
+
 ## 示例 App
 
 `Example/Example.xcodeproj` 是一个以本地 package 方式使用本库的 iOS App。用 Xcode 打开，在 iOS 模拟器上运行 `Example` scheme。每个画面，包括菜单，都是 `Example/Example/Documents` 里的一份 JSON 文档；`navigate` 到 `example://store` 会打开 `store.json`。`Pages.swift` 注册了 router、`openURL`、`addToCart` 与 `showProduct` 两个动作和一个 `rating` 组件。Feed 画面模拟从服务器加载、延迟一秒：显示加载中与失败视图，从 `more` 指名的 patch `feed-2.json`、`feed-3.json` 加载后续页，下拉时重新加载。

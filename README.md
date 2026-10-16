@@ -412,6 +412,8 @@ A node can also carry a `fallback`, a node shown instead when the app does not k
 let manifest = try Manifest(components: components, actions: actions).encoded()
 ```
 
+[`protocol/`](protocol/README.md) describes the format itself, without iOS terms, for the backend and for renderers on other platforms, with [cases](protocol/cases/README.md) that every renderer runs.
+
 ## Example app
 
 `Example/Example.xcodeproj` is an iOS app that uses this package as a local package. Open it in Xcode and run the `Example` scheme on an iOS Simulator. Every screen, the menu included, is a JSON document in `Example/Example/Documents`; a `navigate` to `example://store` opens `store.json`. `Pages.swift` registers the router, `openURL`, `addToCart` and `showProduct` actions and a `rating` component. The Feed screen loads as from a server, a second late: it shows the loading and failure views, loads its next pages from `feed-2.json` and `feed-3.json`, patches named by `more`, and loads again when pulled down.
