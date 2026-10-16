@@ -381,7 +381,7 @@ let controller = DocumentViewController(document: document, components: componen
 
 `BuildContext` reads each property as a publisher, or returns nil when the node does not set it. A constant emits once; a reference emits each value of the item's data. `number`, `length`, `integer`, `bool`, `string`, `url`, `color`, `font` and `insets` read the types above, `choice` one of a set of strings, and `value` anything else. `onValue` applies a property to a view, and `onEvent` runs `context.action(.onTap)` on one of the view's publishers, with the view as the actions' `sourceView`. To run the actions yourself, call what `context.action` returns with the event's value and the view: `action(.bool(isOn), source: view)`. Children are built for you, in `context.children`, when the spec says `acceptsChildren: true`. The common properties are applied to the view you return.
 
-Registering a type that exists replaces it.
+Registering a type that exists replaces it. `repeat` is not a component and cannot be registered: a node of that type is always a [`repeat`](#components).
 
 ## Images
 
