@@ -78,11 +78,11 @@ Swift Package Manager. In `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", from: "0.1.0")
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.2.0"))
 ]
 ```
 
-DeclarativeUIKit and DeclarativeCombine come with it.
+Before 1.0, a minor release such as 0.3.0 can include breaking changes, listed in the [changelog](CHANGELOG.md), so this takes only the patch releases of 0.2. DeclarativeUIKit and DeclarativeCombine come with it.
 
 ## Documents
 

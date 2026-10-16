@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-16
+
 ### Added
 
 - `onTap` on `vstack` and `hstack`, so a whole row can be tapped. With an `accessibilityLabel`, VoiceOver reads the stack as one button.
@@ -40,5 +42,6 @@ First release.
 - `manifest.json` and `Manifest`, describing the components and actions for a backend.
 - Example app.
 
-[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/nothingsh/DeclarativeJSON/releases/tag/0.1.0
