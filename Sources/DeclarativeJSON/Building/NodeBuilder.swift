@@ -93,6 +93,9 @@ struct NodeBuilder {
     /// The containers a `repeat` can be a child of: their children are the
     /// arranged views of a stack.
     static let repeatContainers: Set<String> = ["vstack", "hstack", "vscroll", "hscroll"]
+    /// The components that take the width they are given, unless they have a
+    /// `width`.
+    static let fillingTypes: Set<String> = ["slider", "progress", "textfield"]
 
     init(
         components: ComponentRegistry<UIView>,
@@ -159,7 +162,19 @@ struct NodeBuilder {
             runner: runner,
             report: report
         )
-        return applyCommonProperties(to: component.build(context), context)
+        let built = component.build(context)
+        let view = applyCommonProperties(to: built, context)
+        // A constant, so the publisher has its value on subscription.
+        _ = context.number("layoutPriority")?.sink { view.layoutInfo.priority = $0 ?? 0 }
+        if Self.fillingTypes.contains(node.type) && properties["width"] == nil {
+            view.layoutInfo.fillsWidth = true
+            // Below the pull of filling, for a view with a width of its own.
+            built.setContentHuggingPriority(.fittingSizeLevel, for: .horizontal)
+        }
+        if view is UIStackView {
+            StackLayout.apply(to: view)
+        }
+        return view
     }
 
     /// Builds a `repeat` as the views it puts among its container's children:
@@ -233,6 +248,9 @@ struct NodeBuilder {
                 entry.view.removeFromSuperview()
             }
             repeated.shown = elements.count
+            if let stack {
+                StackLayout.apply(to: stack)
+            }
         }
         return [marker] + first
     }

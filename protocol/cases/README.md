@@ -11,8 +11,9 @@ Each file holds `{ "cases": [ … ] }`. A case has a `name`, which a failing tes
 | [`actions.json`](actions.json) | the item data and issues after events run their actions |
 | [`patches.json`](patches.json) | the sections and issues after patches are applied |
 | [`markdown.json`](markdown.json) | the runs of text, and their styles, of a label's `markdown` |
+| [`layout.json`](layout.json) | how the children of a stack share its space |
 
-The cases do not check how anything looks: fonts, system controls and colors differ between platforms on purpose.
+The cases do not check how anything looks: fonts, system controls and colors differ between platforms on purpose. The layout cases check relations that hold whatever the font.
 
 ## Issues
 
@@ -81,6 +82,21 @@ The harness shows `document` so that every item and header is built with its own
 ```
 
 The harness shows a `label` with the `markdown` and reads back its text in runs: neighbors of the same styles are one run, and `styles` is the set of `bold`, `italic`, `strikethrough` and `code`, none when left out.
+
+## Layout
+
+```json
+{ "name": "…", "width": 200, "node": { "type": "hstack", "children": [ … ] },
+  "expect": [ { "at": "children[0]", "is": "collapsed" }, { "at": "children[1]", "is": "shrunk", "atEnd": true } ] }
+```
+
+The harness builds `node` with no data as the cell of a list: `width` wide, as tall as its content. Each fact of `expect` is about the view at `at`, a path of `children` from `node`, and checks only the keys it has:
+
+- `is` compares the view's length along the axis of its stack with its length on its own, measured with nothing around it: `whole` when it has all of it, `shrunk` when it has less but more than nothing, `collapsed` when it has nothing.
+- `width` and `height` are its size.
+- `atEnd` is whether its end, along the axis of its stack, is at the end of `node`.
+
+Sizes are those that layout lines up, such as an iOS alignment rectangle, and compare within half a point.
 
 ## Patches
 

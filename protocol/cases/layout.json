@@ -1,0 +1,165 @@
+{
+  "cases": [
+    {
+      "name": "Out of space, the earlier child gives way first",
+      "width": 200,
+      "node": { "type": "hstack", "children": [
+        { "type": "label", "text": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "type": "label", "text": "Bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "collapsed" },
+        { "at": "children[1]", "is": "shrunk", "atEnd": true }
+      ]
+    },
+    {
+      "name": "The lowest layoutPriority gives way first, and a higher one keeps its size",
+      "width": 300,
+      "node": { "type": "hstack", "children": [
+        { "type": "label", "text": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "layoutPriority": 1 },
+        { "type": "label", "text": "Bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+        { "type": "label", "text": "Price", "layoutPriority": 2 }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "shrunk" },
+        { "at": "children[1]", "is": "collapsed" },
+        { "at": "children[2]", "is": "whole", "atEnd": true }
+      ]
+    },
+    {
+      "name": "A trailing accessory keeps its size while the title gives way",
+      "width": 200,
+      "node": { "type": "hstack", "spacing": 8, "children": [
+        { "type": "label", "text": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "type": "spacer" },
+        { "type": "button", "title": "Buy" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "shrunk" },
+        { "at": "children[2]", "is": "whole", "atEnd": true }
+      ]
+    },
+    {
+      "name": "Extra space without a spacer goes after the last child",
+      "width": 300,
+      "node": { "type": "hstack", "children": [
+        { "type": "label", "text": "Hi" },
+        { "type": "label", "text": "There" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "whole" },
+        { "at": "children[1]", "is": "whole", "atEnd": false }
+      ]
+    },
+    {
+      "name": "A spacer takes the extra space",
+      "width": 300,
+      "node": { "type": "hstack", "children": [
+        { "type": "label", "text": "Hi" },
+        { "type": "spacer" },
+        { "type": "label", "text": "There" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "whole" },
+        { "at": "children[2]", "is": "whole", "atEnd": true }
+      ]
+    },
+    {
+      "name": "A spacer gives way to its minLength before any other child",
+      "width": 200,
+      "node": { "type": "hstack", "children": [
+        { "type": "label", "text": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+        { "type": "spacer", "minLength": 20 },
+        { "type": "label", "text": "End" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "shrunk" },
+        { "at": "children[1]", "width": 20 },
+        { "at": "children[2]", "is": "whole", "atEnd": true }
+      ]
+    },
+    {
+      "name": "A child with a width keeps it",
+      "width": 200,
+      "node": { "type": "hstack", "children": [
+        { "type": "label", "text": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "width": 150 },
+        { "type": "label", "text": "Bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "width": 150 },
+        { "at": "children[1]", "is": "shrunk" }
+      ]
+    },
+    {
+      "name": "A nested stack gives way as one child, its children after the stack's later siblings",
+      "width": 200,
+      "node": { "type": "hstack", "children": [
+        { "type": "hstack", "children": [
+          { "type": "label", "text": "Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+          { "type": "label", "text": "B" }
+        ]},
+        { "type": "label", "text": "Cccccccccc" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "shrunk" },
+        { "at": "children[0].children[0]", "is": "shrunk" },
+        { "at": "children[0].children[1]", "is": "whole" },
+        { "at": "children[1]", "is": "whole", "atEnd": true }
+      ]
+    },
+    {
+      "name": "A stack with a spacer takes the extra space of the stack it is in",
+      "width": 300,
+      "node": { "type": "hstack", "children": [
+        { "type": "hstack", "children": [
+          { "type": "label", "text": "Hi" },
+          { "type": "spacer" }
+        ]},
+        { "type": "label", "text": "There" }
+      ]},
+      "expect": [
+        { "at": "children[1]", "is": "whole", "atEnd": true }
+      ]
+    },
+    {
+      "name": "A stack without one stays the size of its content",
+      "width": 300,
+      "node": { "type": "hstack", "children": [
+        { "type": "vstack", "children": [ { "type": "label", "text": "Hi" } ] },
+        { "type": "label", "text": "There" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "whole" },
+        { "at": "children[1]", "is": "whole", "atEnd": false }
+      ]
+    },
+    {
+      "name": "A textfield, a slider and a progress without a width take the width they are given",
+      "width": 300,
+      "node": { "type": "vstack", "alignment": "leading", "children": [
+        { "type": "hstack", "children": [ { "type": "label", "text": "Name" }, { "type": "textfield" } ] },
+        { "type": "hstack", "children": [ { "type": "label", "text": "Volume" }, { "type": "slider" } ] },
+        { "type": "progress" },
+        { "type": "hstack", "children": [ { "type": "label", "text": "Short" }, { "type": "textfield", "width": 100 } ] }
+      ]},
+      "expect": [
+        { "at": "children[0].children[1]", "atEnd": true },
+        { "at": "children[1].children[1]", "atEnd": true },
+        { "at": "children[2]", "width": 300 },
+        { "at": "children[3].children[1]", "width": 100, "atEnd": false }
+      ]
+    },
+    {
+      "name": "Out of height, the earlier child of a vstack gives way first",
+      "width": 300,
+      "node": { "type": "vstack", "height": 16, "alignment": "leading", "children": [
+        { "type": "label", "text": "One" },
+        { "type": "label", "text": "Two" }
+      ]},
+      "expect": [
+        { "at": "children[0]", "is": "collapsed" },
+        { "at": "children[1]", "height": 16 }
+      ]
+    }
+  ]
+}

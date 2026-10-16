@@ -135,6 +135,10 @@
       "reference" : true,
       "type" : "bool"
     },
+    "layoutPriority" : {
+      "reference" : false,
+      "type" : "number"
+    },
     "overlay" : {
       "element" : {
         "properties" : {
@@ -589,7 +593,7 @@
   "images" : [
 
   ],
-  "minor" : 5,
+  "minor" : 6,
   "operations" : [
     "appendItems",
     "insertItems",

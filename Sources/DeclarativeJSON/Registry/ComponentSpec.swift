@@ -87,6 +87,9 @@ public struct ComponentSpec: Equatable, Sendable {
         "width": PropertySpec(.number),
         "height": PropertySpec(.number),
         "aspectRatio": PropertySpec(.number),
+        // Which views give way first when a stack runs out of space: the
+        // lowest, and of those the earliest.
+        "layoutPriority": PropertySpec(.number, acceptsReference: false),
         "padding": PropertySpec(.insets),
         "background": PropertySpec(.color),
         "cornerRadius": PropertySpec(.number),

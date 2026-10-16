@@ -36,12 +36,14 @@ extension ComponentRegistry where View == UIView {
         let builders: [String: Build] = [
             "vstack": { context in
                 VStack { context.children }
+                    .configure(StackLayout.addFiller)
                     .onValue(context.choice("alignment", horizontalAlignments)) { $0.alignment($1 ?? .center) }
                     .onValue(context.number("spacing")) { $0.spacing(CGFloat($1 ?? 0)) }
                     .onTap(context)
             },
             "hstack": { context in
                 HStack { context.children }
+                    .configure(StackLayout.addFiller)
                     .onValue(context.choice("alignment", verticalAlignments)) { $0.alignment($1 ?? .center) }
                     .onValue(context.number("spacing")) { $0.spacing(CGFloat($1 ?? 0)) }
                     .onTap(context)
