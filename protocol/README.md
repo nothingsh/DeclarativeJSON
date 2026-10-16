@@ -53,7 +53,7 @@ A **section** has:
 - `items`, an array, empty by default.
 - `more`, optional: any JSON value, such as a cursor or a URL, that the backend needs to send the items after these. The renderer does not read it; see [loading more](#loading-more). `null` is the same as leaving it out.
 
-An **item** has an `id`, a string unique among the items of the page; `template`, the name of a template; and `data`, an object, `{}` by default, whose keys the template's [references](#references) read. A header's `data` works the same way.
+An **item** has an `id`, a string unique among the items of the page; `template`, the name of a template; `data`, an object, `{}` by default, whose keys the template's [references](#references) read; and optionally `tracking`, any JSON value, which the renderer hands to the app's analytics without reading it (see [impressions](#impressions)). A header's `data` works the same way.
 
 Keys the format does not have are ignored in a document, a section, an item, a header, a patch and an operation. In a node, every key besides `type`, `children` and `fallback` is a property, and one the component does not take is reported.
 
@@ -270,6 +270,10 @@ A renderer shows the sections of a document in a scrolling list.
 
 When a section has `more` and the user scrolls to within five items of its end, the renderer asks the app for the next items with the section's `id` and its `more`, and asks again only when that is done. The app loads them and applies a patch with [`appendItems`](#patches), whose `more` is that of the items after them; without `more`, there are no more. While the section loads, the renderer shows a spinner below a `list` or a `grid` section; when the app reports that loading failed, a button that tries again. Scrolling back to the end of the section tries again too. A patch that appends to, replaces or inserts the section, or a new document, ends the loading.
 
+### Impressions
+
+The renderer tells the app once for each item with `tracking` that the user has seen, with the item's `id`, section, template and `tracking`: at least half of the item on screen for half a second without a break, while the page is showing. The app can change both numbers. An item is reported once per document, again after a new document; a patch that replaces an item does not report it again. A carousel counts what shows of it, too. Actions get the item's `tracking` as well, so that an app action can count taps.
+
 ### States of the page
 
 A page can show, in place of its sections, a loading view while the app fetches the document and a failure view with a way to try again. A page without items, none of whose sections has `more`, shows an empty view. These views are the app's to style, and are not part of documents.
@@ -348,6 +352,7 @@ An app keeps the release of the renderer it was built with for a long time, so a
 | 2 | `overlay`; the `grid` layout; `highlight` |
 | 3 | `onSuccess` and `onFailure`; patches |
 | 4 | `more`; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
+| 5 | `tracking` |
 
 ## The manifest
 

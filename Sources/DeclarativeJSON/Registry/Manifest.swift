@@ -6,7 +6,7 @@ import Foundation
 /// ```json
 /// {
 ///   "v": 1,
-///   "minor": 4,
+///   "minor": 5,
 ///   "common": { "alpha": { "type": "number", "reference": true }, … },
 ///   "components": {
 ///     "button": {

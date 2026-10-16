@@ -85,6 +85,20 @@ public final class DocumentViewController: UIViewController {
     /// would. The collection view's own delegate is the page.
     public weak var scrollViewDelegate: UIScrollViewDelegate?
 
+    /// Called once for each item with `tracking` that the user has seen: at
+    /// least `impressionFraction` of it showed for `impressionDuration`
+    /// without a break, while the page was in a window. The page reports an
+    /// item once per document; after `setDocument`, again.
+    public var onImpression: ((ItemInfo) -> Void)? {
+        didSet { updateImpressions() }
+    }
+
+    /// How much of an item has to show for an impression, from 0 to 1.
+    public var impressionFraction = 0.5
+
+    /// How long, in seconds, an item has to show for an impression.
+    public var impressionDuration: TimeInterval = 0.5
+
     /// Called when the user pulls the page down, with a closure to call once
     /// refreshing is done. Load the page, show it with `setDocument`, then
     /// call the closure. Setting it adds a refresh control to the collection
@@ -116,11 +130,16 @@ public final class DocumentViewController: UIViewController {
 
     private var dataSource: UICollectionViewDiffableDataSource<String, String>?
     private var sections: [ShownSection] = []
-    private var items: [String: (template: String, path: String, section: String)] = [:]
+    private var items: [String: (template: String, path: String, section: String, tracking: JSONValue?)] = [:]
     private var data: [TemplateKey: [String: JSONValue]] = [:]
     private var reportedIssues: Set<Issue> = []
     private var registeredTemplates: Set<String> = []
     private var loadingMore: [String: LoadingMore] = [:]
+    /// The items reported to `onImpression` for the current document.
+    private var impressed: Set<String> = []
+    /// When each item that shows enough, and is not yet reported, started to.
+    private var shownSince: [String: Date] = [:]
+    private var isImpressionUpdatePending = false
     /// How many times `makeLoadMoreView` was replaced, for the footers to
     /// tell whether their view is current.
     private var loadMoreViewGeneration = 0
@@ -195,6 +214,8 @@ public final class DocumentViewController: UIViewController {
         self.document = document
         reportedIssues = []
         loadingMore = [:]
+        impressed = []
+        shownSince = [:]
         state = .content
         if isViewLoaded {
             show(document, animatingDifferences: animatingDifferences)
@@ -228,6 +249,23 @@ public final class DocumentViewController: UIViewController {
             show(document, keeping: kept, animatingDifferences: animatingDifferences)
             loadMoreIfShown()
         }
+    }
+
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // The collection view lays out on every scroll, as well as after an
+        // update.
+        updateImpressions()
+    }
+
+    public override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        updateImpressions()
+    }
+
+    public override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        shownSince = [:]
     }
 
     /// Shows `loadingView` in place of the sections, such as while the page
@@ -314,7 +352,7 @@ public final class DocumentViewController: UIViewController {
                     report(Issue(.unknownTemplate(item.template), at: itemPath))
                 } else {
                     register(item.template)
-                    items[item.id] = (item.template, "templates.\(item.template)", section.id)
+                    items[item.id] = (item.template, "templates.\(item.template)", section.id, item.tracking)
                     data[.item(item.id)] = kept[.item(item.id)] ?? item.data
                     snapshot.appendItems([item.id])
                 }
@@ -380,7 +418,8 @@ public final class DocumentViewController: UIViewController {
         guard let cell = cell as? TemplateCell, let item = items[id],
               let template = document.templates[item.template] else { return }
         cell.host.show(
-            template, path: item.path, item: ItemInfo(id: id, section: item.section, template: item.template),
+            template, path: item.path,
+            item: ItemInfo(id: id, section: item.section, template: item.template, tracking: item.tracking),
             data: data[.item(id)] ?? [:], in: cell.contentView, page: self
         )
     }
@@ -507,6 +546,59 @@ public final class DocumentViewController: UIViewController {
         }
     }
 
+    /// Starts timing the items that now show enough, stops timing those that
+    /// no longer do, and reports those shown for long enough.
+    private func updateImpressions() {
+        guard onImpression != nil, isViewLoaded, view.window != nil, let dataSource else {
+            shownSince = [:]
+            return
+        }
+        let bounds = collectionView.bounds.inset(by: collectionView.adjustedContentInset)
+        var showing: Set<String> = []
+        for cell in collectionView.visibleCells where !cell.isHidden {
+            guard let indexPath = collectionView.indexPath(for: cell),
+                  let id = dataSource.itemIdentifier(for: indexPath),
+                  !impressed.contains(id), items[id]?.tracking != nil else { continue }
+            // A cell of a carousel is in the carousel's own scroll view.
+            let frame = cell.convert(cell.bounds, to: collectionView)
+            let shown = frame.intersection(bounds)
+            guard !shown.isNull, frame.width > 0, frame.height > 0 else { continue }
+            if Double(shown.width * shown.height / (frame.width * frame.height)) >= impressionFraction {
+                showing.insert(id)
+            }
+        }
+
+        let now = Date()
+        shownSince = shownSince.filter { showing.contains($0.key) }
+        for id in showing where shownSince[id] == nil {
+            shownSince[id] = now
+            DispatchQueue.main.asyncAfter(deadline: .now() + impressionDuration) { [weak self] in
+                self?.updateImpressions()
+            }
+        }
+        // Sorted, so that items that showed together are reported in order.
+        let due = shownSince.filter { now.timeIntervalSince($0.value) >= impressionDuration }.keys.sorted {
+            (dataSource.indexPath(for: $0) ?? IndexPath()) < (dataSource.indexPath(for: $1) ?? IndexPath())
+        }
+        for id in due {
+            shownSince[id] = nil
+            impressed.insert(id)
+            guard let item = items[id] else { continue }
+            onImpression?(ItemInfo(id: id, section: item.section, template: item.template, tracking: item.tracking))
+        }
+    }
+
+    /// Updates the impressions after a carousel scrolled, which the collection
+    /// view's layout does not see.
+    private func scheduleImpressionUpdate() {
+        guard onImpression != nil, !isImpressionUpdatePending else { return }
+        isImpressionUpdatePending = true
+        DispatchQueue.main.async { [weak self] in
+            self?.isImpressionUpdatePending = false
+            self?.updateImpressions()
+        }
+    }
+
     func report(_ issue: Issue) {
         guard reportedIssues.insert(issue).inserted else { return }
         onIssue?(issue)
@@ -531,6 +623,9 @@ public final class DocumentViewController: UIViewController {
                 )
                 section = NSCollectionLayoutSection(group: group)
                 section.orthogonalScrollingBehavior = .continuous
+                section.visibleItemsInvalidationHandler = { [weak self] _, _, _ in
+                    self?.scheduleImpressionUpdate()
+                }
             case .grid:
                 let height = NSCollectionLayoutDimension.estimated(44)
                 let group = NSCollectionLayoutGroup.horizontal(

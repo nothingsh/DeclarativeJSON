@@ -98,7 +98,7 @@ dependencies: [
   "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
 ```
 
-`layout` 取 `list`，一列占满宽度、高度随内容的 cell；取 `carousel`，一行横向滚动；或取 `grid`，每行若干等宽的 cell。默认是 `list`。`grid` 另有 `columns`（每行几个 cell，默认 2）和 `spacing`（cell 之间的横向与纵向间距，默认 0）。一行的高度取这一行里最高的 cell，每个 cell 保持自己的高度，靠这一行的顶部。条目有在整页唯一的 `id`、所用 `template` 的名字和它的 `data`（一个 JSON 对象）。header 同样有 `template` 和 `data`。
+`layout` 取 `list`，一列占满宽度、高度随内容的 cell；取 `carousel`，一行横向滚动；或取 `grid`，每行若干等宽的 cell。默认是 `list`。`grid` 另有 `columns`（每行几个 cell，默认 2）和 `spacing`（cell 之间的横向与纵向间距，默认 0）。一行的高度取这一行里最高的 cell，每个 cell 保持自己的高度，靠这一行的顶部。条目有在整页唯一的 `id`、所用 `template` 的名字、它的 `data`（一个 JSON 对象），以及可选的 [`tracking`](#曝光)。header 同样有 `template` 和 `data`。
 
 模板里的节点是一个对象，带 `type`、它的属性，stack 还带 `children`，还可以带 [`fallback`](#版本)：
 
@@ -202,7 +202,7 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` 用 `string`、`url`、`bool` 和 `number` 读取参数，类型不对时会上报；`parameters` 给出全部参数。`event` 是事件的值，`data` 是条目的数据，`update { $0["key"] = … }` 像 `set` 一样修改数据。
 
-`item` 说明动作是为哪个条目执行的：它的 `id`、`section` 和 `template`；section 的 header 则 `isHeader` 为 true、没有 `id`。`sourceView` 是发出事件的视图，`page` 是 `DocumentViewController`，用来从它们弹出界面：
+`item` 说明动作是为哪个条目执行的：它的 `id`、`section`、`template` 和 `tracking`；section 的 header 则 `isHeader` 为 true、没有 `id`。`sourceView` 是发出事件的视图，`page` 是 `DocumentViewController`，用来从它们弹出界面：
 
 ```swift
 actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) { context in
@@ -335,6 +335,22 @@ controller.onRefresh = { done in
 
 这些视图显示在 section 后面、铺满 collection view，所以空页面或失败的页面也能下拉。默认的视图是转圈和英文提示；把 `loadingView`、`failureView`、`emptyView` 换成你自己的，例如页面的骨架屏或本地化的文字，你的失败视图要调用 `retry()`。下拉刷新失败时不需要 `showFailure`：调用 `done`，页面保留当前显示的内容。
 
+### 曝光
+
+条目可以带 `tracking`，值是你的埋点统计需要的任何东西，比如广告 id；库不读它，原样交给你：
+
+```json
+{ "id": "p1", "template": "product", "data": { … }, "tracking": { "slot": 3, "campaign": "fall" } }
+```
+
+```swift
+controller.onImpression = { item in
+    analytics.impression(item.tracking)
+}
+```
+
+用户看到一个带 `tracking` 的条目时，页面调用一次 `onImpression`：页面在 window 里时，条目至少一半在屏幕上、连续半秒。要换口径，设置 `impressionFraction` 和 `impressionDuration`。同一份文档里每个条目只报一次；`setDocument` 之后重新计，替换条目的 patch 不会让它再报一次。动作也能在 `context.item` 里读到 `tracking`，可以用你自己的动作统计点击。0.6.0 之前的版本忽略 `tracking`。
+
 ## 自定义组件
 
 注册一个类型，写明它接受什么、怎样建出视图：
@@ -391,6 +407,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 2 | 0.3.0 | `overlay`；`grid` 布局；`vstack` 与 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；颜色 `systemMint`、`systemCyan`、`systemBrown` |
+| 5 | 0.6.0 | 条目的 `tracking` |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
