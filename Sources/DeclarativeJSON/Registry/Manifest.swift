@@ -6,6 +6,7 @@ import Foundation
 /// ```json
 /// {
 ///   "v": 1,
+///   "minor": 1,
 ///   "common": { "alpha": { "type": "number", "reference": true }, … },
 ///   "components": {
 ///     "button": {
@@ -20,7 +21,8 @@ import Foundation
 /// }
 /// ```
 ///
-/// `common` lists the properties every component accepts besides its own.
+/// `v` and `minor` are those of `DocumentVersion`. `common` lists the
+/// properties every component accepts besides its own.
 /// `reference` tells whether the value can be a `$` reference. A type is one
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
 /// `insets`, `oneOf` with its `values`, `object` with the type of each of
@@ -61,6 +63,7 @@ public struct Manifest {
         }
         return .object([
             "v": .number(Double(DocumentVersion.current)),
+            "minor": .number(Double(DocumentVersion.minor)),
             "common": Self.json(ComponentSpec.commonProperties),
             "components": .object(components),
             "actions": .object(actions),

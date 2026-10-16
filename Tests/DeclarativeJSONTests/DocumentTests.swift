@@ -74,7 +74,8 @@ final class DocumentTests: XCTestCase {
             "row": { "type": "vstack", "children": [
               "label",
               { "text": "no type" },
-              { "type": "label", "children": {} }
+              { "type": "label", "children": {} },
+              { "type": "label", "fallback": "label" }
             ]}
           },
           "sections": [ { "id": "s", "layout": "grid", "items": [] } ]
@@ -82,13 +83,14 @@ final class DocumentTests: XCTestCase {
         """)
 
         XCTAssertNil(document.templates["broken"])
-        XCTAssertEqual(document.templates["row"], Node(type: "vstack", children: [Node(type: "label")]))
+        XCTAssertEqual(document.templates["row"], Node(type: "vstack", children: [Node(type: "label"), Node(type: "label")]))
         XCTAssertEqual(document.sections[0].layout, .list)
         XCTAssertEqual(document.issues, [
             Issue(.invalidNode, at: "templates.broken"),
             Issue(.invalidNode, at: "templates.row.children[0]"),
             Issue(.invalidNode, at: "templates.row.children[1]"),
             Issue(.invalidChildren, at: "templates.row.children[2]"),
+            Issue(.invalidNode, at: "templates.row.children[3].fallback"),
             Issue(.unknownLayout("grid"), at: "sections[0]"),
         ])
     }

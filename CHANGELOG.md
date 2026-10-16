@@ -9,6 +9,8 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - `onTap` on `vstack` and `hstack`, so a whole row can be tapped. With an `accessibilityLabel`, VoiceOver reads the stack as one button.
+- `fallback` on any node: a node shown instead when the app does not know the node's type, such as a component of a later release.
+- `DocumentVersion.minor`, and `minor` in the manifest: which additions to version 1 of the format a release reads, for the app to send with its requests. This release reads 1.
 
 ### Fixed
 

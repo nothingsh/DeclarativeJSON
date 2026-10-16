@@ -63,6 +63,7 @@ controller.onIssue = { print($0) }
 - [自訂元件](#自訂元件)
 - [圖片](#圖片)
 - [文件裡的問題](#文件裡的問題)
+- [版本](#版本)
 - [清單](#清單)
 - [範例 App](#範例-app)
 
@@ -87,7 +88,7 @@ DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
 
 文件有三個鍵：
 
-- `v`，格式的版本。這一版讀取第 1 版；其他版本的文件解碼失敗，丟出 `DocumentError.unsupportedVersion`。
+- `v`，格式的版本。這一版讀取第 1 版；其他版本的文件解碼失敗，丟出 `DocumentError.unsupportedVersion`。後來的版本在第 1 版上新增了什麼，見[版本](#版本)。
 - `templates`，從名稱對應到 cell 或 header 的視圖樹。
 - `sections`，依序排列。section 有 `id`、`layout`、可選的 `header` 和它的 `items`。
 
@@ -99,7 +100,7 @@ DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
 
 `layout` 取 `list`，一欄佔滿寬度、高度隨內容的 cell；或取 `carousel`，一列橫向捲動。預設是 `list`。項目有在整頁唯一的 `id`、所用 `template` 的名稱和它的 `data`（一個 JSON 物件）。header 同樣有 `template` 和 `data`。
 
-範本裡的節點是一個物件，帶 `type`、它的屬性，stack 還帶 `children`：
+範本裡的節點是一個物件，帶 `type`、它的屬性，stack 還帶 `children`，還可以帶 [`fallback`](#版本)：
 
 ```json
 { "type": "vstack", "spacing": 4, "children": [
@@ -253,7 +254,7 @@ URL 改變時，視圖取消先前的載入並忽略它的結果。
 
 只有在不是 JSON、版本不同，或骨架寫錯時，文件才會解碼失敗。骨架指 `v`、`templates`、`sections`、每個 section 和項目的 `id`，以及每個項目和 header 的 `template`。其餘問題都盡量顯示，並回報給 `onIssue`，每份文件同一問題只報一次：
 
-- 未知的元件型別顯示為空的視圖；
+- 未知的元件型別顯示為節點的 `fallback`，沒有時顯示為空的視圖；
 - 未知的屬性或事件，以及在只接受常數處寫的引用，會被忽略；
 - 型別不對的值視為缺少；
 - 不是帶 `type` 的物件的節點、未知或寫錯的動作、重複的 `id`、範本不存在的項目或 header 會被移除；
@@ -261,9 +262,30 @@ URL 改變時，視圖取消先前的載入並忽略它的結果。
 
 每個 `Issue` 都寫明位置，例如 `templates.product.children[2]`。
 
+## 版本
+
+App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得懂。格式第 1 版只做增量，一個版本遇到不認得的內容會回報並略過。`DocumentVersion.minor` 表示一個版本讀得懂哪些新增：
+
+| `minor` | 函式庫版本 | 新增 |
+| --- | --- | --- |
+| 0 | 0.1.0 | 第 1 版 |
+| 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
+
+請求時帶上它，後端就只寫 App 讀得懂的內容：
+
+```swift
+request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPHeaderField: "Document-Version")
+```
+
+節點還可以帶一個 `fallback`：App 不認得這個節點的型別時（例如後來的版本才加的元件），改為顯示它。`fallback` 本身也可以再帶 `fallback`。0.2.0 之前的版本不讀 `fallback`。
+
+```json
+{ "type": "rating", "value": "$score", "fallback": { "type": "label", "text": "$scoreText" } }
+```
+
 ## 清單
 
-[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作和它們的參數。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
+[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作和它們的參數，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

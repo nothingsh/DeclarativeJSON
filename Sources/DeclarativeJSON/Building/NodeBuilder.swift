@@ -32,7 +32,7 @@ struct NodeBuilder {
     func build(_ node: Node, path: String) -> UIView {
         guard let component = components.component(node.type) else {
             report(Issue(.unknownType(node.type), at: path))
-            return UIView()
+            return node.fallback.map { build($0, path: "\(path).fallback") } ?? UIView()
         }
         let spec = component.spec
 

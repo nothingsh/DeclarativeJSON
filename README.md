@@ -63,6 +63,7 @@ A `$` value refers to a key of the item's `data`; everything else is a constant.
 - [Your own components](#your-own-components)
 - [Images](#images)
 - [Problems in a document](#problems-in-a-document)
+- [Versions](#versions)
 - [The manifest](#the-manifest)
 - [Example app](#example-app)
 
@@ -87,7 +88,7 @@ DeclarativeUIKit and DeclarativeCombine come with it.
 
 A document has three keys:
 
-- `v`, the version of the format. This release reads version 1; a document of another version fails to decode with `DocumentError.unsupportedVersion`.
+- `v`, the version of the format. This release reads version 1; a document of another version fails to decode with `DocumentError.unsupportedVersion`. [Versions](#versions) lists what later releases add to version 1.
 - `templates`, from a name to the view tree of a cell or a header.
 - `sections`, in order. A section has an `id`, a `layout`, an optional `header` and its `items`.
 
@@ -99,7 +100,7 @@ A document has three keys:
 
 `layout` is `list`, one column of full-width cells as tall as their content, or `carousel`, one row that scrolls sideways; `list` is the default. An item has an `id`, unique in the page, the name of its `template` and its `data`, a JSON object. A header has a `template` and `data` too.
 
-A node of a template is an object with a `type`, its properties and, for a stack, its `children`:
+A node of a template is an object with a `type`, its properties, for a stack its `children`, and optionally a [`fallback`](#versions):
 
 ```json
 { "type": "vstack", "spacing": 4, "children": [
@@ -253,7 +254,7 @@ When the URL changes, the view cancels the earlier load and ignores its result.
 
 A document fails to decode only when it is not JSON, has another version, or gets its outline wrong: `v`, `templates`, `sections`, the `id` of each section and item, and the `template` of each item and header. Everything else is shown as well as it can be, and the problem is reported to `onIssue`, once per document:
 
-- an unknown component type is an empty view;
+- an unknown component type is shown as the node's `fallback`, or else as an empty view;
 - an unknown property or event, or a reference where only a constant is accepted, is ignored;
 - a value of the wrong type is treated as missing;
 - a node that is not an object with a `type`, an unknown or malformed action, a duplicate `id`, and an item or header with an unknown template are left out;
@@ -261,9 +262,30 @@ A document fails to decode only when it is not JSON, has another version, or get
 
 Each `Issue` says where it is, as in `templates.product.children[2]`.
 
+## Versions
+
+An app stays at the release it was built with, so a backend writes documents that older releases read too. Version 1 of the format grows only by additions, and a release reports what it does not know and leaves it out. `DocumentVersion.minor` tells which additions a release reads:
+
+| `minor` | Release | Adds |
+| --- | --- | --- |
+| 0 | 0.1.0 | Version 1 |
+| 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
+
+Send it with your requests, so that the backend writes what the app reads:
+
+```swift
+request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPHeaderField: "Document-Version")
+```
+
+A node can also carry a `fallback`, a node shown instead when the app does not know the node's type, such as a component added in a later release. A fallback can have a fallback of its own. Releases before 0.2.0 do not read `fallback`.
+
+```json
+{ "type": "rating", "value": "$score", "fallback": { "type": "label", "text": "$scoreText" } }
+```
+
 ## The manifest
 
-[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
+[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()
