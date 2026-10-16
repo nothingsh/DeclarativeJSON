@@ -208,6 +208,7 @@ struct NodeBuilder {
             case let value?: elements = [Self.elementData(value)]
             }
             let stack = marker.superview as? UIStackView
+            let position = stack?.arrangedSubviews.firstIndex(of: marker)
             for (index, element) in elements.enumerated() {
                 if index == repeated.built.count {
                     let data = CurrentValueSubject<[String: JSONValue], Never>(element)
@@ -217,7 +218,7 @@ struct NodeBuilder {
                 }
                 if index >= repeated.shown {
                     let view = repeated.built[index].view
-                    if let stack, let position = stack.arrangedSubviews.firstIndex(of: marker) {
+                    if let stack, let position {
                         stack.insertArrangedSubview(view, at: position + 1 + index)
                     } else {
                         first.append(view)
