@@ -12,7 +12,13 @@ All notable changes to this project are documented here. The format follows
 - `ItemInfo.tracking`, so that an action can read the item's `tracking`.
 - `markdown` on `label`: inline Markdown, bold, italic, strikethrough and code, shown instead of `text`.
 - `lineHeight` on `label`: the height of each line, with the text centered in it, growing with the text size.
-- `DocumentVersion.minor` 5, for `tracking`, `markdown` and `lineHeight`.
+- `repeat`, a child of a stack that puts a copy of its `template` among the stack's children for each element of an array, reading the element's data.
+- `repeat` in the manifest, with its properties.
+- `DocumentVersion.minor` 5, for `tracking`, `markdown`, `lineHeight` and `repeat`.
+
+### Changed
+
+- `Issue.Kind` has the cases `unexpectedRepeat` and `unsupportedAction`, for a `repeat`. A `switch` over it has to handle them.
 
 ## [0.5.0] - 2026-10-16
 

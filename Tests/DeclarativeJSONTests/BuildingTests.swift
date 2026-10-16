@@ -378,5 +378,113 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(paragraph?.minimumLineHeight, UIFontMetrics.default.scaledValue(for: 40, compatibleWith: larger))
         XCTAssertGreaterThan(paragraph?.minimumLineHeight ?? 0, 40)
     }
+
+    private func texts(_ stack: UIStackView) -> [String?] {
+        stack.arrangedSubviews.filter { !$0.isHidden }.map { ($0 as? UILabel)?.text }
+    }
+
+    func testARepeatPutsASubtreeForEachElementAmongItsSiblingsAndFollowsTheArray() throws {
+        data.send(["tags": .array([.object(["text": .string("New")]), .object(["text": .string("Free")])])])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "hstack", "spacing": 4, "children": [
+          { "type": "label", "text": "Tags:" },
+          { "type": "repeat", "items": "$tags", "template": { "type": "label", "text": "$text" } },
+          { "type": "label", "text": "End" }
+        ]}
+        """) as? UIStackView)
+        XCTAssertEqual(texts(stack), ["Tags:", "New", "Free", "End"])
+        let first = stack.arrangedSubviews.first { ($0 as? UILabel)?.text == "New" }
+
+        data.send(["tags": .array([.object(["text": .string("Sale")]), .object(["text": .string("New")]),
+                                   .object(["text": .string("Last")])])])
+        XCTAssertEqual(texts(stack), ["Tags:", "Sale", "New", "Last", "End"])
+        // The first subtree shows the first element, by its data alone.
+        XCTAssertIdentical(stack.arrangedSubviews.first { ($0 as? UILabel)?.text == "Sale" }, first)
+
+        data.send(["tags": .array([.object(["text": .string("Only")])])])
+        XCTAssertEqual(texts(stack), ["Tags:", "Only", "End"])
+        data.send([:])
+        XCTAssertEqual(texts(stack), ["Tags:", "End"])
+        data.send(["tags": .array([.object(["text": .string("A")]), .object(["text": .string("B")])])])
+        XCTAssertEqual(texts(stack), ["Tags:", "A", "B", "End"])
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAnElementThatIsNotAnObjectIsItsValueAndARepeatNests() throws {
+        data.send(["groups": .array([
+            .object(["name": .string("Size"), "options": .array([.string("S"), .string("M")])]),
+            .object(["name": .string("Color"), "options": .string("Red")]),
+        ])])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "children": [
+          { "type": "repeat", "items": "$groups", "template": { "type": "hstack", "children": [
+            { "type": "label", "text": "$name" },
+            { "type": "repeat", "items": "$options", "template": { "type": "label", "text": "$value" } }
+          ]}}
+        ]}
+        """) as? UIStackView)
+        let rows = stack.arrangedSubviews.compactMap { $0 as? UIStackView }
+
+        XCTAssertEqual(rows.map(texts), [["Size", "S", "M"], ["Color", "Red"]])
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAnActionInARepeatReadsTheElementAndCannotChangeIt() throws {
+        var opened: [URL?] = []
+        var actions = ActionRegistry.standard
+        actions.register(.navigate) { opened.append($0.url("url")) }
+        data.send(["links": .array([.object(["url": .string("app://a")]), .object(["url": .string("app://b")])])])
+        let value = try JSONDecoder().decode(JSONValue.self, from: Data("""
+        { "type": "vstack", "children": [
+          { "type": "repeat", "items": "$links", "template": { "type": "button", "onTap": [
+            { "action": "navigate", "url": "$url" },
+            { "action": "toggle", "path": "seen" }
+          ]}}
+        ]}
+        """.utf8))
+        var decodeIssues: [Issue] = []
+        let node = try XCTUnwrap(Node(value, path: "t", issues: &decodeIssues))
+        let builder = NodeBuilder(
+            components: .standard, actions: actions, data: data, target: { [data] in
+                ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), data: { data.value }) { change in
+                    var changed = data.value
+                    change(&changed)
+                    data.send(changed)
+                    return changed
+                }
+            }
+        ) { [unowned self] in
+            issues.append($0)
+        }
+        let stack = try XCTUnwrap(builder.build(node, path: "t") as? UIStackView)
+        let buttons = stack.arrangedSubviews.compactMap { $0 as? UIButton }
+
+        buttons[1].fire(.touchUpInside)
+
+        XCTAssertEqual(opened, [URL(string: "app://b")])
+        XCTAssertNil(data.value["seen"])
+        XCTAssertEqual(Set(issues), [Issue(.unsupportedAction("toggle"), at: "t.children[0].template.onTap[1]")])
+    }
+
+    func testARepeatThatCannotShowIsReportedAndLeftOut() throws {
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "children": [
+          { "type": "label", "text": "A", "overlay": { "content": { "type": "repeat", "items": [1] } } },
+          { "type": "repeat", "items": [1], "padding": 4, "children": [ { "type": "label" } ] },
+          { "type": "repeat", "items": "$list", "template": "$row" },
+          { "type": "repeat", "items": [1] }
+        ]}
+        """) as? UIStackView)
+
+        XCTAssertEqual(stack.arrangedSubviews.filter { !$0.isHidden }.count, 1)
+        XCTAssertEqual(issues, [
+            Issue(.unexpectedRepeat, at: "t.children[0].overlay.content"),
+            Issue(.unknownProperty("padding"), at: "t.children[1]"),
+            Issue(.unexpectedChildren, at: "t.children[1]"),
+            Issue(.invalidNode, at: "t.children[1].template"),
+            Issue(.referenceNotAccepted("template"), at: "t.children[2]"),
+            Issue(.invalidNode, at: "t.children[3].template"),
+        ])
+    }
 }
 

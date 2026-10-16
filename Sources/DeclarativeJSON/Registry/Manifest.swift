@@ -18,14 +18,17 @@ import Foundation
 ///   "actions": {
 ///     "navigate": { "async": false, "parameters": { "url": { "type": "url", "reference": true } } }
 ///   },
-///   "operations": ["insertItems", …]
+///   "operations": ["insertItems", …],
+///   "repeat": { "properties": { "items": { … }, "template": { "type": "node", "reference": false } } }
 /// }
 /// ```
 ///
 /// `v` and `minor` are those of `DocumentVersion`. `common` lists the
 /// properties every component accepts besides its own. An action with
 /// `async` takes `onSuccess` and `onFailure` besides its parameters.
-/// `operations` lists the `op`s a patch can have.
+/// `operations` lists the `op`s a patch can have. `repeat` gives the
+/// properties of the `repeat` node, which is not a component: it puts a
+/// subtree for each element of `items` among its container's children.
 /// `reference` tells whether the value can be a `$` reference. A type is one
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
 /// `insets`, `oneOf` with its `values`, `object` with the type of each of
@@ -72,8 +75,15 @@ public struct Manifest {
             "components": .object(components),
             "actions": .object(actions),
             "operations": .array(PatchOperationName.allCases.map(\.rawValue).sorted().map(JSONValue.string)),
+            "repeat": .object(["properties": Self.json(Self.repeatProperties)]),
         ])
     }
+
+    static let repeatProperties: [String: PropertySpec] = [
+        // An array, or one element; null or missing is none.
+        "items": PropertySpec(.list(.any)),
+        "template": PropertySpec(.node, acceptsReference: false),
+    ]
 
     private static func json(_ properties: [String: PropertySpec]) -> JSONValue {
         .object(properties.mapValues { property in

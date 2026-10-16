@@ -169,6 +169,31 @@
       ]
     },
     {
+      "name": "A repeat shows only as a child of a stack, takes only items and template, and its subtrees cannot set or toggle",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "vstack", "children": [
+          { "type": "label", "overlay": { "content": { "type": "repeat", "items": [1] } } },
+          { "type": "repeat", "items": [1], "padding": 4, "children": [ { "type": "label" } ] },
+          { "type": "repeat", "items": "$tags", "template": "$tag" },
+          { "type": "repeat", "items": "$tags", "template": { "type": "button", "title": "$value", "numberOfLines": 2, "onTap": [
+            { "action": "set", "path": "picked", "value": "$value" },
+            { "action": "navigate", "url": "$url" }
+          ]}}
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "tags": ["New", "Free"] } } ] } ]
+      },
+      "issues": [
+        { "kind": "unexpectedRepeat", "at": "templates.row.children[0].overlay.content" },
+        { "kind": "unknownProperty", "property": "padding", "at": "templates.row.children[1]" },
+        { "kind": "unexpectedChildren", "at": "templates.row.children[1]" },
+        { "kind": "invalidNode", "at": "templates.row.children[1].template" },
+        { "kind": "referenceNotAccepted", "property": "template", "at": "templates.row.children[2]" },
+        { "kind": "unknownProperty", "property": "numberOfLines", "at": "templates.row.children[3].template" },
+        { "kind": "unsupportedAction", "action": "set", "at": "templates.row.children[3].template.onTap[0]" }
+      ]
+    },
+    {
       "name": "A header's template is built with the header's data",
       "document": {
         "v": 1,

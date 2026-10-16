@@ -28,6 +28,8 @@ extension Issue {
         case .unknownTemplate(let name): kind("unknownTemplate", ["template": .string(name)])
         case .unknownID(let id): kind("unknownID", ["id": .string(id)])
         case .unknownOperation(let name): kind("unknownOperation", ["operation": .string(name)])
+        case .unexpectedRepeat: kind("unexpectedRepeat")
+        case .unsupportedAction(let name): kind("unsupportedAction", ["action": .string(name)])
         }
         return .object(object)
     }

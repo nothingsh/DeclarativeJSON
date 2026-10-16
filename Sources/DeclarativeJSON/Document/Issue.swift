@@ -44,6 +44,12 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
         case unknownID(String)
         /// A patch operation this version does not know. It is skipped.
         case unknownOperation(String)
+        /// A `repeat` that is not a child of a `vstack`, an `hstack`, a
+        /// `vscroll` or an `hscroll`. It is left out.
+        case unexpectedRepeat
+        /// An action that cannot run where it is, such as `set` or `toggle`
+        /// in a `repeat`. It is left out.
+        case unsupportedAction(String)
     }
 
     public let kind: Kind
@@ -90,6 +96,10 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
             return "\(path): the page has no \"\(id)\"; skipped"
         case .unknownOperation(let name):
             return "\(path): unknown operation \"\(name)\"; skipped"
+        case .unexpectedRepeat:
+            return "\(path): a repeat can only be a child of vstack, hstack, vscroll or hscroll; left out"
+        case .unsupportedAction(let name):
+            return "\(path): \"\(name)\" cannot change the data of an element of a repeat; left out"
         }
     }
 }

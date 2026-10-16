@@ -76,6 +76,26 @@ A node is an object with a string `type`, its properties, and, for a container, 
 - `children` is an array of nodes. A child that is not a node is left out and reported; `children` that is not an array gives no children.
 - `fallback` is a node shown instead when the renderer does not know `type`, such as a component of a later release. A fallback can have its own fallback. It is not used when the type is known, even when a property is not.
 
+### Repeat
+
+A `repeat` is a node that is not a view: a child of a `vstack`, `hstack`, `vscroll` or `hscroll` that puts a copy of its `template` among the container's children, in its place, for each element of `items`. The copies take the container's spacing and alignment, and sit between the children before and after it.
+
+```json
+{ "type": "hstack", "spacing": 4, "children": [
+  { "type": "label", "text": "Tags:" },
+  { "type": "repeat", "items": "$tags",
+    "template": { "type": "label", "text": "$value", "padding": 4, "background": "secondarySystemFill", "cornerRadius": 4 } }
+]}
+```
+
+- `items` is an array, or a reference to one. A value that is not an array is one element; missing or `null` is none. When the data changes, the copies follow the array.
+- `template` is a node, written as a constant. In it, a reference reads the element, never the item: a key of an element that is an object, or `value` for an element that is not. A template needs from the item what the backend puts into the elements.
+- Actions in the template run for the item, with parameters read from the element. `set` and `toggle` cannot change an element: they are left out and reported as `unsupportedAction`. An app action's change to the data does nothing.
+- A `repeat` takes no other property, event or children; they are reported as for any node. A `repeat` anywhere else, including as a template or a fallback, is left out and reported as `unexpectedRepeat`.
+- A `repeat` can contain another, which reads an array of the element.
+- A renderer of an earlier minor version shows the `repeat`'s `fallback`, as for an unknown type.
+- Issues in the template are at its path, such as `templates.row.children[1].template.children[0]`, whichever element they come from.
+
 A **path** names a place in the document, for issues and for the shared cases: keys joined by `.`, and array indexes in brackets, counting every element as written. `templates.row.children[2].fallback` is the fallback of the third child of the template `row`; `sections[1].items[0]` is the first item of the second section.
 
 ## References
@@ -161,6 +181,7 @@ A renderer has these components. An app can register more, which its manifest li
 | Protocol | Compose |
 | --- | --- |
 | `vstack` / `hstack` | `Column` / `Row` |
+| `repeat` | a `for` loop over the elements in the `Column` or `Row`, keyed by index |
 | `vscroll` / `hscroll` | `Column` with `verticalScroll` / `Row` with `horizontalScroll` |
 | `spacer`, `minLength` | `Spacer` with `weight`; `widthIn` / `heightIn` for the minimum |
 | `label`, `numberOfLines` | `Text`, `maxLines` (0 for no limit), ellipsis on overflow |
@@ -338,6 +359,8 @@ Problems that do not stop the page are **issues**: the part at fault is left out
 | `unknownTemplate` | an item or header with a template the page does not have | left out |
 | `unknownID` | an `id` in a patch that the page does not have | skipped |
 | `unknownOperation` | a patch `op` the renderer does not know | skipped |
+| `unexpectedRepeat` | a `repeat` that is not a child of a stack | left out |
+| `unsupportedAction` | `set` or `toggle` in a `repeat` | left out |
 
 An issue says where it is with a [path](#nodes): the node, as in `templates.product.children[2]`; the action, as in `templates.product.onTap[1]`; the section or item, as in `sections[0].items[3]`; or the place in a patch. The shared cases write an issue as JSON, such as `{ "kind": "unknownType", "type": "card", "at": "templates.product.children[0]" }`; see [their format](cases/README.md#issues).
 
@@ -356,8 +379,8 @@ An app keeps the release of the renderer it was built with for a long time, so a
 | 2 | `overlay`; the `grid` layout; `highlight` |
 | 3 | `onSuccess` and `onFailure`; patches |
 | 4 | `more`; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
-| 5 | `tracking`; `markdown` and `lineHeight` on `label` |
+| 5 | `tracking`; `markdown` and `lineHeight` on `label`; `repeat` |
 
 ## The manifest
 
-A renderer exports a manifest: every component with its properties and events, the properties every component takes, every action with its parameters and whether it is asynchronous, the operations of a patch, and `v` and `minor`. Each property has its [type](#values) and whether it takes a reference. The manifest of the iOS library's built-in components and actions is [`manifest.json`](../manifest.json); an app with components or actions of its own exports its own. A backend reads it to check the documents it writes. When the Android renderer comes, each platform will have its manifest, and the difference between them is what the platforms do not yet share.
+A renderer exports a manifest: every component with its properties and events, the properties every component takes, every action with its parameters and whether it is asynchronous, the operations of a patch, the properties of `repeat`, and `v` and `minor`. Each property has its [type](#values) and whether it takes a reference. The manifest of the iOS library's built-in components and actions is [`manifest.json`](../manifest.json); an app with components or actions of its own exports its own. A backend reads it to check the documents it writes. When the Android renderer comes, each platform will have its manifest, and the difference between them is what the platforms do not yet share.
