@@ -78,11 +78,11 @@ controller.onIssue = { print($0) }
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.5.0"))
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.6.0"))
 ]
 ```
 
-1.0 之前，0.6.0 这样的次版本可能有破坏性变化（见 [CHANGELOG](CHANGELOG.md)），所以这里只接受 0.5 的修订版本。DeclarativeUIKit 和 DeclarativeCombine 会一并引入。
+1.0 之前，0.7.0 这样的次版本可能有破坏性变化（见 [CHANGELOG](CHANGELOG.md)），所以这里只接受 0.6 的修订版本。DeclarativeUIKit 和 DeclarativeCombine 会一并引入。
 
 ## 文档
 
