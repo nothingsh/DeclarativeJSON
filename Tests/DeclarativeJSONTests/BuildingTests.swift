@@ -46,6 +46,24 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(issues, [])
     }
 
+    func testAnUnknownTypeShowsItsFallbackAndIsStillReported() throws {
+        data.send(["scoreText": .string("4.5")])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "children": [
+          { "type": "rating", "value": "$score", "fallback": { "type": "label", "text": "$scoreText" } },
+          { "type": "chart", "fallback": { "type": "sparkline", "fallback": { "type": "label", "text": "No chart" } } },
+          { "type": "label", "text": "Known", "fallback": { "type": "label", "text": "Unused" } }
+        ]}
+        """) as? UIStackView)
+
+        XCTAssertEqual(stack.arrangedSubviews.map { ($0 as? UILabel)?.text }, ["4.5", "No chart", "Known"])
+        XCTAssertEqual(issues, [
+            Issue(.unknownType("rating"), at: "t.children[0]"),
+            Issue(.unknownType("chart"), at: "t.children[1]"),
+            Issue(.unknownType("sparkline"), at: "t.children[1].fallback"),
+        ])
+    }
+
     func testAValueOfTheWrongTypeIsReportedAndTreatedAsMissing() throws {
         data.send(["lines": .number(3)])
         let label = try XCTUnwrap(try build(#"{ "type": "label", "numberOfLines": "$lines", "width": -5 }"#) as? UILabel)

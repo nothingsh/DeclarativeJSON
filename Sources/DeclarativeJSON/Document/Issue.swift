@@ -11,7 +11,8 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
         /// A section `layout` this version does not know. The section is laid
         /// out as a list.
         case unknownLayout(String)
-        /// A node type the registry does not know. It is shown as an empty view.
+        /// A node type the registry does not know. It is shown as its
+        /// `fallback`, or else as an empty view.
         case unknownType(String)
         /// A property, or an event, the component does not accept. It is ignored.
         case unknownProperty(String)
@@ -58,7 +59,7 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
         case .unknownLayout(let layout):
             return "\(path).layout: unknown layout \"\(layout)\"; shown as a list"
         case .unknownType(let type):
-            return "\(path): unknown type \"\(type)\"; shown as an empty view"
+            return "\(path): unknown type \"\(type)\"; shown as its fallback or else as an empty view"
         case .unknownProperty(let name):
             return "\(path).\(name): not accepted by this component; ignored"
         case .referenceNotAccepted(let name):
