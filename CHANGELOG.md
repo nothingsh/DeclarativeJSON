@@ -10,7 +10,13 @@ All notable changes to this project are documented here. The format follows
 
 - Asynchronous actions: `ActionRegistry.register` with an `async throws` handler, such as one that sends a request. Such an action takes `onSuccess` and `onFailure`, which run when the handler returns or throws, and the actions after it wait until it is done. The actions after a wait read and change the item the action ran for, and do not run when the page no longer has it. The task is cancelled when the page goes away.
 - `ActionSpec.isAsync`, and `async` for each action in the manifest.
-- `DocumentVersion.minor` 3, for `onSuccess` and `onFailure`.
+- Patches, which change part of a page: `DocumentDecoder.decodePatch` reads one, and `DocumentViewController.apply(_:)` replaces, inserts and removes the items and sections it names, by `id`, and adds its templates. Replaced and inserted items show the patch's data; the other items keep the changes made on the device.
+- `operations` in the manifest, the operations of a patch.
+- `DocumentVersion.minor` 3, for `onSuccess` and `onFailure` and for patches.
+
+### Changed
+
+- `Issue.Kind` has the cases `unknownID` and `unknownOperation`, for a patch. A `switch` over it has to handle them.
 
 ## [0.3.0] - 2026-10-16
 

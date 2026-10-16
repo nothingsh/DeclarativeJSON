@@ -26,7 +26,8 @@ private struct ShownSection {
 /// Each cell builds its template's views the first time it is shown and keeps
 /// them; showing another item only sends that item's data. `set` and `toggle`
 /// change the page's copy of the item's data, so a change stays when the cell
-/// is reused, until `setDocument` replaces the data.
+/// is reused, until `setDocument`, or a patch that replaces the item, replaces
+/// the data.
 public final class DocumentViewController: UIViewController {
     public let components: ComponentRegistry<UIView>
     public let actions: ActionRegistry
@@ -87,7 +88,7 @@ public final class DocumentViewController: UIViewController {
             return view
         }
         self.dataSource = dataSource
-        apply(document, animatingDifferences: false)
+        show(document, animatingDifferences: false)
     }
 
     /// Shows another document, such as a newer version of the page. Items and
@@ -97,11 +98,38 @@ public final class DocumentViewController: UIViewController {
         self.document = document
         reportedIssues = []
         if isViewLoaded {
-            apply(document, animatingDifferences: animatingDifferences)
+            show(document, animatingDifferences: animatingDifferences)
         }
     }
 
-    private func apply(_ document: Document, animatingDifferences: Bool) {
+    /// Changes part of the page: replaces, inserts and removes the items and
+    /// sections the patch names, and adds its templates. Replaced and inserted
+    /// items and sections show the patch's data; the others keep the changes
+    /// made on the device. What the patch refers to that the page does not
+    /// have is skipped and reported to `onIssue`, every time.
+    public func apply(_ patch: Patch, animatingDifferences: Bool = true) {
+        let result = document.applying(patch)
+        document = result.document
+        (patch.issues + result.issues).forEach { onIssue?($0) }
+        if isViewLoaded {
+            var kept = data
+            for id in result.changedItems {
+                kept[.item(id)] = nil
+            }
+            for id in result.changedSections {
+                kept[.header(id)] = nil
+            }
+            show(document, keeping: kept, animatingDifferences: animatingDifferences)
+        }
+    }
+
+    /// Shows a document with the data in `kept` in place of its own, for the
+    /// items and headers it has.
+    private func show(
+        _ document: Document,
+        keeping kept: [TemplateKey: [String: JSONValue]] = [:],
+        animatingDifferences: Bool
+    ) {
         document.issues.forEach(report)
         sections = []
         items = [:]
@@ -119,7 +147,7 @@ public final class DocumentViewController: UIViewController {
                 if document.templates[written.template] != nil {
                     register(written.template)
                     header = (written.template, "templates.\(written.template)")
-                    data[.header(section.id)] = written.data
+                    data[.header(section.id)] = kept[.header(section.id)] ?? written.data
                 } else {
                     report(Issue(.unknownTemplate(written.template), at: "\(sectionPath).header"))
                 }
@@ -138,7 +166,7 @@ public final class DocumentViewController: UIViewController {
                 } else {
                     register(item.template)
                     items[item.id] = (item.template, "templates.\(item.template)", section.id)
-                    data[.item(item.id)] = item.data
+                    data[.item(item.id)] = kept[.item(item.id)] ?? item.data
                     snapshot.appendItems([item.id])
                 }
             }

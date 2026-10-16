@@ -246,6 +246,27 @@ controller.setDocument(newDocument)
 
 `setDocument` 显示更新后的文档。section 与条目按 `id` 对应并带动画，新文档的数据替换设备上做过的改动。
 
+只改页面的一部分时（比如某个条目的价格变了），应用一个 patch：
+
+```json
+{ "v": 1,
+  "templates": { "notice": { "type": "label", "text": "$text", "padding": 12 } },
+  "operations": [
+    { "op": "replaceItems", "items": [ { "id": "p1", "template": "product", "data": { "title": "Keyboard", "price": "89.00" } } ] },
+    { "op": "insertItems", "section": "today", "after": "p1", "items": [ { "id": "n1", "template": "notice", "data": { "text": "Back in stock" } } ] },
+    { "op": "removeItems", "ids": ["p3"] }
+  ] }
+```
+
+```swift
+let patch = try DocumentDecoder().decodePatch(data)
+controller.apply(patch)
+```
+
+`replaceItems` 和 `replaceSections` 原地替换 `id` 相同的条目和 section。`insertItems` 把条目插到 `section` 里条目 `after` 的后面，`insertSections` 把 section 插到 section `after` 的后面；不写 `after` 时插在最前面。`removeItems` 和 `removeSections` 删除 `ids` 里的条目和 section，section 连同它的条目一起删除。`templates` 可选：加入新模板，替换同名的模板，用到它的 cell 会重建。
+
+操作按顺序执行，页面一起做动画。被替换或新插入的条目和 section 显示 patch 的数据；其余条目保留设备上做过的改动，这一点和 `setDocument` 不同。patch 引用了页面没有的 `id`，或插入页面已有的 `id` 时，跳过那个条目、section 或操作，其余照常应用。库本身不发请求：patch 来自你自己的请求，或来自异步动作里收到的响应，用 `context.page?.apply(patch)` 应用。0.4.0 之前的版本不能应用 patch。
+
 ## 自定义组件
 
 注册一个类型，写明它接受什么、怎样建出视图：
@@ -286,9 +307,10 @@ URL 变化时，视图取消之前的加载并忽略它的结果。
 - 未知的属性或事件，以及在只接受常量处写的引用，会被忽略；
 - 类型不对的值按缺失处理；
 - 不是带 `type` 的对象的节点、未知或写错的动作、重复的 `id`、模板不存在的条目或 header 会被去掉；
-- 未知的 `layout` 按列表显示。
+- 未知的 `layout` 按列表显示；
+- patch 里未知的操作、页面没有的 `id`，以及插入处页面已有的 `id`，会被跳过。
 
-每个 `Issue` 都写明位置，例如 `templates.product.children[2]`。
+每个 `Issue` 都写明位置，例如 `templates.product.children[2]`；patch 的问题写 patch 里的位置，例如 `operations[1].items[0]`。patch 的问题每次应用都会上报。
 
 ## 版本
 
@@ -299,7 +321,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 布局；`vstack` 与 `hstack` 的 `highlight` |
-| 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure` |
+| 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
@@ -315,7 +337,7 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清单
 
-[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
+[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，patch 的操作，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

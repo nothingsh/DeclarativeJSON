@@ -320,6 +320,42 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(issues, [])
     }
 
+    func testAPatchShowsItsItemsAndTheOtherItemsKeepTheirLocalChanges() throws {
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "row": { "type": "vstack", "children": [
+            { "type": "label", "text": "$title" },
+            { "type": "label", "text": "Liked", "isVisible": "$liked" },
+            { "type": "button", "title": "Like", "onTap": { "action": "toggle", "path": "liked" } }
+          ]}},
+          "sections": [ { "id": "s", "items": [
+            { "id": "a", "template": "row", "data": { "title": "A", "liked": false } },
+            { "id": "b", "template": "row", "data": { "title": "B", "liked": false } } ] } ] }
+        """)
+        views(UIButton.self, in: cell(controller, 0)).first?.fire(.touchUpInside)
+        views(UIButton.self, in: cell(controller, 1)).first?.fire(.touchUpInside)
+
+        controller.apply(try DocumentDecoder().decodePatch(Data("""
+        { "v": 1,
+          "templates": { "notice": { "type": "label", "text": "$text" } },
+          "operations": [
+            { "op": "replaceItems", "items": [ { "id": "b", "template": "row", "data": { "title": "B2", "liked": false } } ] },
+            { "op": "insertItems", "section": "s", "after": "b", "items": [
+              { "id": "c", "template": "notice", "data": { "text": "New" } } ] }
+          ] }
+        """.utf8)), animatingDifferences: false)
+        controller.view.layoutIfNeeded()
+
+        func shown(_ item: Int) -> [String?] {
+            views(UILabel.self, in: cell(controller, item)).filter { !$0.isHidden }.map(\.text)
+        }
+        XCTAssertEqual(shown(0), ["A", "Liked", "Like"])
+        XCTAssertEqual(shown(1), ["B2", "Like"])
+        XCTAssertEqual(shown(2), ["New"])
+        XCTAssertEqual(controller.document.sections[0].items.map(\.id), ["a", "b", "c"])
+        XCTAssertEqual(issues, [])
+    }
+
     func testCellsBuildTheirTemplateOnceAndANewDocumentSendsItsData() throws {
         var builds = 0
         var components = ComponentRegistry<UIView>.standard

@@ -246,6 +246,27 @@ controller.setDocument(newDocument)
 
 `setDocument` 顯示更新後的文件。section 與項目依 `id` 對應並帶動畫，新文件的資料取代裝置上做過的改動。
 
+只改頁面的一部分時（例如某個項目的價格變了），套用一個 patch：
+
+```json
+{ "v": 1,
+  "templates": { "notice": { "type": "label", "text": "$text", "padding": 12 } },
+  "operations": [
+    { "op": "replaceItems", "items": [ { "id": "p1", "template": "product", "data": { "title": "Keyboard", "price": "89.00" } } ] },
+    { "op": "insertItems", "section": "today", "after": "p1", "items": [ { "id": "n1", "template": "notice", "data": { "text": "Back in stock" } } ] },
+    { "op": "removeItems", "ids": ["p3"] }
+  ] }
+```
+
+```swift
+let patch = try DocumentDecoder().decodePatch(data)
+controller.apply(patch)
+```
+
+`replaceItems` 和 `replaceSections` 原地取代 `id` 相同的項目和 section。`insertItems` 把項目插到 `section` 裡項目 `after` 的後面，`insertSections` 把 section 插到 section `after` 的後面；沒寫 `after` 時插在最前面。`removeItems` 和 `removeSections` 刪除 `ids` 裡的項目和 section，section 連同它的項目一起刪除。`templates` 可省略：加入新範本，取代同名的範本，用到它的 cell 會重建。
+
+操作依序執行，頁面一起做動畫。被取代或新插入的項目和 section 顯示 patch 的資料；其餘項目保留裝置上做過的改動，這一點和 `setDocument` 不同。patch 引用了頁面沒有的 `id`，或插入頁面已有的 `id` 時，略過那個項目、section 或操作，其餘照常套用。函式庫本身不發請求：patch 來自你自己的請求，或來自非同步動作裡收到的回應，用 `context.page?.apply(patch)` 套用。0.4.0 之前的版本不能套用 patch。
+
 ## 自訂元件
 
 註冊一個型別，寫明它接受什麼、怎麼建出視圖：
@@ -286,9 +307,10 @@ URL 改變時，視圖取消先前的載入並忽略它的結果。
 - 未知的屬性或事件，以及在只接受常數處寫的引用，會被忽略；
 - 型別不對的值視為缺少；
 - 不是帶 `type` 的物件的節點、未知或寫錯的動作、重複的 `id`、範本不存在的項目或 header 會被移除；
-- 未知的 `layout` 以列表顯示。
+- 未知的 `layout` 以列表顯示；
+- patch 裡未知的操作、頁面沒有的 `id`，以及插入處頁面已有的 `id`，會被略過。
 
-每個 `Issue` 都寫明位置，例如 `templates.product.children[2]`。
+每個 `Issue` 都寫明位置，例如 `templates.product.children[2]`；patch 的問題寫 patch 裡的位置，例如 `operations[1].items[0]`。patch 的問題每次套用都會回報。
 
 ## 版本
 
@@ -299,7 +321,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 版面；`vstack` 與 `hstack` 的 `highlight` |
-| 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure` |
+| 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure`；patch |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 
@@ -315,7 +337,7 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清單
 
-[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作、它們的參數和是否非同步，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
+[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作、它們的參數和是否非同步，patch 的操作，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

@@ -86,50 +86,27 @@ extension Document: Decodable {
         }
 
         var issues: [Issue] = []
-        let rawTemplates = try container.decode([String: JSONValue].self, forKey: .templates)
-        var templates: [String: Node] = [:]
-        // Sorted, so that the issues come in the same order every time.
-        for name in rawTemplates.keys.sorted() {
-            templates[name] = Node(rawTemplates[name]!, path: "templates.\(name)", issues: &issues)
-        }
+        let templates = Self.templates(
+            try container.decode([String: JSONValue].self, forKey: .templates), issues: &issues
+        )
 
         let rawSections = try container.decode([RawSection].self, forKey: .sections)
         sections = rawSections.enumerated().map { index, raw in
-            var layout = Layout.list
-            if let name = raw.layout {
-                if let known = Layout(rawValue: name) {
-                    layout = known
-                } else {
-                    issues.append(Issue(.unknownLayout(name), at: "sections[\(index)]"))
-                }
-            }
-            var columns = 2
-            var spacing = 0.0
-            if layout == .grid {
-                let path = "sections[\(index)]"
-                switch raw.columns {
-                case nil, .null?:
-                    break
-                case .number(let number)? where Int(exactly: number).map({ $0 >= 1 }) == true:
-                    columns = Int(number)
-                case _?:
-                    issues.append(Issue(.typeMismatch(property: "columns", expected: .integer), at: path))
-                }
-                switch raw.spacing {
-                case nil, .null?:
-                    break
-                case .number(let number)? where number.isFinite && number >= 0:
-                    spacing = number
-                case _?:
-                    issues.append(Issue(.typeMismatch(property: "spacing", expected: .number), at: path))
-                }
-            }
-            return Section(
-                id: raw.id, layout: layout, columns: columns, spacing: spacing, header: raw.header, items: raw.items
-            )
+            Section(raw, path: "sections[\(index)]", issues: &issues)
         }
         self.templates = templates
         self.issues = issues
+    }
+
+    /// Reads the templates of a document or a patch; a template that is not
+    /// a node is left out.
+    static func templates(_ raw: [String: JSONValue], issues: inout [Issue]) -> [String: Node] {
+        var templates: [String: Node] = [:]
+        // Sorted, so that the issues come in the same order every time.
+        for name in raw.keys.sorted() {
+            templates[name] = Node(raw[name]!, path: "templates.\(name)", issues: &issues)
+        }
+        return templates
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -137,8 +114,44 @@ extension Document: Decodable {
     }
 }
 
+extension Document.Section {
+    /// Checks the layout of a section as written. A wrong value is reported
+    /// and replaced by its default.
+    init(_ raw: RawSection, path: String, issues: inout [Issue]) {
+        var layout = Document.Layout.list
+        if let name = raw.layout {
+            if let known = Document.Layout(rawValue: name) {
+                layout = known
+            } else {
+                issues.append(Issue(.unknownLayout(name), at: path))
+            }
+        }
+        var columns = 2
+        var spacing = 0.0
+        if layout == .grid {
+            switch raw.columns {
+            case nil, .null?:
+                break
+            case .number(let number)? where Int(exactly: number).map({ $0 >= 1 }) == true:
+                columns = Int(number)
+            case _?:
+                issues.append(Issue(.typeMismatch(property: "columns", expected: .integer), at: path))
+            }
+            switch raw.spacing {
+            case nil, .null?:
+                break
+            case .number(let number)? where number.isFinite && number >= 0:
+                spacing = number
+            case _?:
+                issues.append(Issue(.typeMismatch(property: "spacing", expected: .number), at: path))
+            }
+        }
+        self.init(id: raw.id, layout: layout, columns: columns, spacing: spacing, header: raw.header, items: raw.items)
+    }
+}
+
 /// A section as written, before its layout is checked.
-private struct RawSection: Decodable {
+struct RawSection: Decodable {
     let id: String
     let layout: String?
     // Checked by the document, so that a wrong value does not fail it.
