@@ -23,11 +23,18 @@ public struct Document: Equatable, Sendable {
         case list
         /// One row that scrolls sideways.
         case carousel
+        /// Rows of `columns` cells of equal width; each row as tall as its
+        /// tallest cell.
+        case grid
     }
 
     public struct Section: Equatable, Sendable {
         public let id: String
         public let layout: Layout
+        /// The cells in a row of a grid, at least 1.
+        public let columns: Int
+        /// The space between the cells of a grid, across and down.
+        public let spacing: Double
         public let header: Header?
         public let items: [Item]
     }
@@ -96,7 +103,30 @@ extension Document: Decodable {
                     issues.append(Issue(.unknownLayout(name), at: "sections[\(index)]"))
                 }
             }
-            return Section(id: raw.id, layout: layout, header: raw.header, items: raw.items)
+            var columns = 2
+            var spacing = 0.0
+            if layout == .grid {
+                let path = "sections[\(index)]"
+                switch raw.columns {
+                case nil, .null?:
+                    break
+                case .number(let number)? where Int(exactly: number).map({ $0 >= 1 }) == true:
+                    columns = Int(number)
+                case _?:
+                    issues.append(Issue(.typeMismatch(property: "columns", expected: .integer), at: path))
+                }
+                switch raw.spacing {
+                case nil, .null?:
+                    break
+                case .number(let number)? where number.isFinite && number >= 0:
+                    spacing = number
+                case _?:
+                    issues.append(Issue(.typeMismatch(property: "spacing", expected: .number), at: path))
+                }
+            }
+            return Section(
+                id: raw.id, layout: layout, columns: columns, spacing: spacing, header: raw.header, items: raw.items
+            )
         }
         self.templates = templates
         self.issues = issues
@@ -111,6 +141,9 @@ extension Document: Decodable {
 private struct RawSection: Decodable {
     let id: String
     let layout: String?
+    // Checked by the document, so that a wrong value does not fail it.
+    let columns: JSONValue?
+    let spacing: JSONValue?
     let header: Document.Header?
     let items: [Document.Item]
 
@@ -118,11 +151,13 @@ private struct RawSection: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         layout = try container.decodeIfPresent(String.self, forKey: .layout)
+        columns = try container.decodeIfPresent(JSONValue.self, forKey: .columns)
+        spacing = try container.decodeIfPresent(JSONValue.self, forKey: .spacing)
         header = try container.decodeIfPresent(Document.Header.self, forKey: .header)
         items = try container.decodeIfPresent([Document.Item].self, forKey: .items) ?? []
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, layout, header, items
+        case id, layout, columns, spacing, header, items
     }
 }

@@ -98,7 +98,7 @@ A document has three keys:
   "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
 ```
 
-`layout` is `list`, one column of full-width cells as tall as their content, or `carousel`, one row that scrolls sideways; `list` is the default. An item has an `id`, unique in the page, the name of its `template` and its `data`, a JSON object. A header has a `template` and `data` too.
+`layout` is `list`, one column of full-width cells as tall as their content, `carousel`, one row that scrolls sideways, or `grid`, rows of cells of equal width; `list` is the default. A `grid` takes `columns`, the cells in a row, 2 by default, and `spacing`, the space between cells across and down, 0 by default. A row is as tall as its tallest cell, and each cell keeps its own height at the top of the row. An item has an `id`, unique in the page, the name of its `template` and its `data`, a JSON object. A header has a `template` and `data` too.
 
 A node of a template is an object with a `type`, its properties, for a stack its `children`, and optionally a [`fallback`](#versions):
 
@@ -288,7 +288,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | --- | --- | --- |
 | 0 | 0.1.0 | Version 1 |
 | 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
-| 2 | 0.3.0 | `overlay` |
+| 2 | 0.3.0 | `overlay`; the `grid` layout |
 
 Send it with your requests, so that the backend writes what the app reads:
 

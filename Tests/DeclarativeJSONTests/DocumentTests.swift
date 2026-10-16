@@ -78,7 +78,7 @@ final class DocumentTests: XCTestCase {
               { "type": "label", "fallback": "label" }
             ]}
           },
-          "sections": [ { "id": "s", "layout": "grid", "items": [] } ]
+          "sections": [ { "id": "s", "layout": "masonry", "items": [] } ]
         }
         """)
 
@@ -91,7 +91,7 @@ final class DocumentTests: XCTestCase {
             Issue(.invalidNode, at: "templates.row.children[1]"),
             Issue(.invalidChildren, at: "templates.row.children[2]"),
             Issue(.invalidNode, at: "templates.row.children[3].fallback"),
-            Issue(.unknownLayout("grid"), at: "sections[0]"),
+            Issue(.unknownLayout("masonry"), at: "sections[0]"),
         ])
     }
 }

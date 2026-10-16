@@ -67,6 +67,42 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(issues, [])
     }
 
+    func testAGridLaysItsItemsOutInRowsOfEqualWidthAsTallAsTheirTallestCell() throws {
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "tile": { "type": "label", "height": "$height" } },
+          "sections": [
+            { "id": "grid", "layout": "grid", "columns": 3, "spacing": 10,
+              "items": [ { "id": "a", "template": "tile", "data": { "height": 40 } },
+                         { "id": "b", "template": "tile", "data": { "height": 80 } },
+                         { "id": "c", "template": "tile", "data": { "height": 40 } },
+                         { "id": "d", "template": "tile", "data": { "height": 40 } } ] },
+            { "id": "wrong", "layout": "grid", "columns": 0, "spacing": "wide",
+              "items": [ { "id": "e", "template": "tile", "data": { "height": 40 } },
+                         { "id": "f", "template": "tile", "data": { "height": 40 } } ] }
+          ] }
+        """)
+        func frames(_ section: Int, _ count: Int) -> [CGRect?] {
+            (0..<count).map { cell(controller, $0, section: section)?.frame }
+        }
+
+        XCTAssertEqual(frames(0, 4), [
+            CGRect(x: 0, y: 0, width: 100, height: 40),
+            CGRect(x: 110, y: 0, width: 100, height: 80),
+            CGRect(x: 220, y: 0, width: 100, height: 40),
+            CGRect(x: 0, y: 90, width: 100, height: 40),
+        ])
+        // The defaults: two columns, no spacing.
+        XCTAssertEqual(frames(1, 2), [
+            CGRect(x: 0, y: 130, width: 160, height: 40),
+            CGRect(x: 160, y: 130, width: 160, height: 40),
+        ])
+        XCTAssertEqual(issues, [
+            Issue(.typeMismatch(property: "columns", expected: .integer), at: "sections[1]"),
+            Issue(.typeMismatch(property: "spacing", expected: .number), at: "sections[1]"),
+        ])
+    }
+
     func testDuplicateIDsAndUnknownTemplatesAreLeftOutAndEachIssueIsReportedOnce() throws {
         let controller = try show("""
         { "v": 1,
