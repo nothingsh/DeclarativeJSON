@@ -12,7 +12,7 @@ final class ManifestTests: XCTestCase {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("manifest.json")
-        let generated = try Manifest(components: ComponentRegistry<UIView>.standard, actions: .standard).encoded() + Data("\n".utf8)
+        let generated = try Manifest(components: ComponentRegistry<UIView>.standard, actions: .standard, theme: .standard).encoded() + Data("\n".utf8)
         let checkedIn = try? Data(contentsOf: url)
 
         if checkedIn != generated {
@@ -44,5 +44,22 @@ final class ManifestTests: XCTestCase {
             "properties": .object(["color": .object(["type": .string("color")]), "width": .object(["type": .string("number")])]),
             "reference": .bool(true),
         ]))
+    }
+
+    func testTheManifestListsTheNamesOfTheTheme() throws {
+        var theme = Theme.standard
+        theme.colors["brand"] = .systemTeal
+        theme.images["heart"] = UIImage()
+
+        let root = Manifest(components: ComponentRegistry<UIView>.standard, actions: .standard, theme: theme).json
+
+        guard case .object(let fields) = root, case .array(let colors)? = fields["colors"] else {
+            return XCTFail("no colors")
+        }
+        XCTAssertTrue(colors.contains(.string("brand")))
+        XCTAssertTrue(colors.contains(.string("secondaryLabel")))
+        XCTAssertEqual(fields["images"], .array([.string("heart")]))
+        guard case .array(let fonts)? = fields["fonts"] else { return XCTFail("no fonts") }
+        XCTAssertEqual(fonts.count, 11)
     }
 }

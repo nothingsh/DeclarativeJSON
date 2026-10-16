@@ -11,12 +11,14 @@ final class BuildingTests: XCTestCase {
     private var issues: [Issue] = []
     private let data = CurrentValueSubject<[String: JSONValue], Never>([:])
 
-    private func build(_ json: String, components: ComponentRegistry<UIView> = .standard) throws -> UIView {
+    private func build(
+        _ json: String, components: ComponentRegistry<UIView> = .standard, theme: Theme = .standard
+    ) throws -> UIView {
         let value = try JSONDecoder().decode(JSONValue.self, from: Data(json.utf8))
         var decodeIssues: [Issue] = []
         let node = try XCTUnwrap(Node(value, path: "t", issues: &decodeIssues))
         let builder = NodeBuilder(
-            components: components, actions: .standard, data: data, target: { [data] in
+            components: components, theme: theme, actions: .standard, data: data, target: { [data] in
                 ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), data: { data.value }) { change in
                     var changed = data.value
                     change(&changed)
@@ -56,7 +58,7 @@ final class BuildingTests: XCTestCase {
         ]}
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.arrangedSubviews.map { ($0 as? UILabel)?.text }, ["4.5", "No chart", "Known"])
+        XCTAssertEqual(stack.contentViews.map { ($0 as? UILabel)?.text }, ["4.5", "No chart", "Known"])
         XCTAssertEqual(issues, [
             Issue(.unknownType("rating"), at: "t.children[0]"),
             Issue(.unknownType("chart"), at: "t.children[1]"),
@@ -104,7 +106,7 @@ final class BuildingTests: XCTestCase {
         ]}
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.arrangedSubviews.count, 3)
+        XCTAssertEqual(stack.contentViews.count, 3)
         XCTAssertEqual(String(describing: type(of: stack.arrangedSubviews[0])), "UIView")
         XCTAssertEqual((stack.arrangedSubviews[1] as? UILabel)?.text, "Hi")
         XCTAssertEqual(issues, [
@@ -139,6 +141,59 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(issues, [
             Issue(.typeMismatch(property: "font", expected: .font), at: "t"),
             Issue(.typeMismatch(property: "textColor", expected: .color), at: "t"),
+        ])
+    }
+
+    func testTheThemeReplacesAndAddsColorsFontsAndImages() throws {
+        let brand = UIColor(red: 0.2, green: 0.4, blue: 0.6, alpha: 1)
+        let heart = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { _ in }
+        var theme = Theme.standard
+        theme.colors["secondaryLabel"] = .systemPink
+        theme.colors["brand"] = brand
+        theme.fonts["headline"] = .custom(.italicSystemFont(ofSize: 17), relativeTo: .headline)
+        theme.fonts["price"] = .custom(.systemFont(ofSize: 20, weight: .bold))
+        theme.images["heart"] = heart
+
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "border": { "color": "brand", "width": 1 }, "children": [
+          { "type": "label", "textColor": "secondaryLabel", "font": "headline" },
+          { "type": "label", "textColor": { "light": "brand", "dark": "white" }, "font": "price" },
+          { "type": "image", "image": "heart" },
+          { "type": "button", "image": "heart" }
+        ]}
+        """, theme: theme) as? UIStackView)
+        let views = stack.arrangedSubviews
+
+        let headline = try XCTUnwrap(views[0] as? UILabel)
+        XCTAssertEqual(headline.textColor, .systemPink)
+        XCTAssertTrue(headline.font.fontDescriptor.symbolicTraits.contains(.traitItalic))
+        let price = try XCTUnwrap(views[1] as? UILabel)
+        XCTAssertEqual(price.textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)), brand)
+        XCTAssertEqual(price.font.pointSize, 20, accuracy: 0.5)
+        XCTAssertEqual(stack.layer.borderColor, brand.cgColor)
+        XCTAssertIdentical((views[2] as? UIImageView)?.image, heart)
+        XCTAssertIdentical((views[3] as? UIButton)?.image(for: .normal), heart)
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAnImageNameThatIsNotFoundIsReported() throws {
+        data.send(["icon": .string("photo")])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "children": [
+          { "type": "image", "image": "$icon" },
+          { "type": "button", "image": "no.such.image" }
+        ]}
+        """) as? UIStackView)
+        let image = try XCTUnwrap(stack.arrangedSubviews[0] as? UIImageView)
+        XCTAssertNotNil(image.image)
+        XCTAssertNil((stack.arrangedSubviews[1] as? UIButton)?.image(for: .normal))
+
+        data.send(["icon": .string("no.such.icon")])
+
+        XCTAssertNil(image.image)
+        XCTAssertEqual(issues, [
+            Issue(.unknownImage("no.such.image"), at: "t.children[1]"),
+            Issue(.unknownImage("no.such.icon"), at: "t.children[0]"),
         ])
     }
 
@@ -189,10 +244,14 @@ final class BuildingTests: XCTestCase {
 
         XCTAssertEqual(wrapper.directionalLayoutMargins, NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 0, trailing: 8))
         XCTAssertEqual(label.accessibilityLabel, "Name")
-        XCTAssertEqual(wrapper.constraints.first { $0.firstAttribute == .width && $0.isActive }?.constant, 120)
+        // Besides the stack's hugging, which the layout rules add.
+        func widths() -> [NSLayoutConstraint] {
+            wrapper.constraints.filter { $0.firstAttribute == .width && $0.isActive && $0.priority == .required }
+        }
+        XCTAssertEqual(widths().map(\.constant), [120])
 
         data.send([:])
-        XCTAssertFalse(wrapper.constraints.contains { $0.firstAttribute == .width && $0.isActive })
+        XCTAssertEqual(widths(), [])
     }
 
     func testOverlaysSitInFrontOfTheViewAtTheirAlignmentAndFollowTheItemData() throws {
@@ -380,7 +439,7 @@ final class BuildingTests: XCTestCase {
     }
 
     private func texts(_ stack: UIStackView) -> [String?] {
-        stack.arrangedSubviews.filter { !$0.isHidden }.map { ($0 as? UILabel)?.text }
+        stack.contentViews.filter { !$0.isHidden }.map { ($0 as? UILabel)?.text }
     }
 
     func testARepeatPutsASubtreeForEachElementAmongItsSiblingsAndFollowsTheArray() throws {
@@ -466,6 +525,28 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(Set(issues), [Issue(.unsupportedAction("toggle"), at: "t.children[0].template.onTap[1]")])
     }
 
+    func testTheSubtreesOfARepeatGiveWayByTheirLayoutPriority() throws {
+        data.send(["tags": .array([])])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "hstack", "children": [
+          { "type": "label", "text": "Bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+          { "type": "repeat", "items": "$tags",
+            "template": { "type": "label", "text": "$value", "layoutPriority": -1 } }
+        ]}
+        """) as? UIStackView)
+        let host = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 100))
+        host.addContent(stack)
+
+        // Added after the stack was built.
+        data.send(["tags": .array([.string("Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")])])
+        host.layoutIfNeeded()
+
+        let views = stack.contentViews.filter { !$0.isHidden }
+        XCTAssertEqual(views.map { ($0 as? UILabel)?.text?.prefix(1) }, ["B", "A"])
+        XCTAssertEqual(views[0].frame.width, 200, accuracy: 0.5)
+        XCTAssertEqual(views[1].frame.width, 0, accuracy: 0.5)
+    }
+
     func testARepeatThatCannotShowIsReportedAndLeftOut() throws {
         let stack = try XCTUnwrap(try build("""
         { "type": "vstack", "children": [
@@ -476,7 +557,7 @@ final class BuildingTests: XCTestCase {
         ]}
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.arrangedSubviews.filter { !$0.isHidden }.count, 1)
+        XCTAssertEqual(stack.contentViews.filter { !$0.isHidden }.count, 1)
         XCTAssertEqual(issues, [
             Issue(.unexpectedRepeat, at: "t.children[0].overlay.content"),
             Issue(.unknownProperty("padding"), at: "t.children[1]"),

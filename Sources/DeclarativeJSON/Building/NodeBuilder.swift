@@ -83,6 +83,7 @@ private final class Repeated {
 @MainActor
 struct NodeBuilder {
     let components: ComponentRegistry<UIView>
+    let theme: Theme
     let data: CurrentValueSubject<[String: JSONValue], Never>
     let report: (Issue) -> Void
     private let actions: ActionRegistry
@@ -92,9 +93,13 @@ struct NodeBuilder {
     /// The containers a `repeat` can be a child of: their children are the
     /// arranged views of a stack.
     static let repeatContainers: Set<String> = ["vstack", "hstack", "vscroll", "hscroll"]
+    /// The components that take the width they are given, unless they have a
+    /// `width`.
+    static let fillingTypes: Set<String> = ["slider", "progress", "textfield"]
 
     init(
         components: ComponentRegistry<UIView>,
+        theme: Theme = .standard,
         actions: ActionRegistry,
         data: CurrentValueSubject<[String: JSONValue], Never>,
         target: @escaping () -> ActionTarget?,
@@ -102,6 +107,7 @@ struct NodeBuilder {
         inRepeat: Bool = false
     ) {
         self.components = components
+        self.theme = theme
         self.data = data
         self.report = report
         self.actions = actions
@@ -152,10 +158,23 @@ struct NodeBuilder {
             children: children,
             path: path,
             data: data.eraseToAnyPublisher(),
+            theme: theme,
             runner: runner,
             report: report
         )
-        return applyCommonProperties(to: component.build(context), context)
+        let built = component.build(context)
+        let view = applyCommonProperties(to: built, context)
+        // A constant, so the publisher has its value on subscription.
+        _ = context.number("layoutPriority")?.sink { view.layoutInfo.priority = $0 ?? 0 }
+        if Self.fillingTypes.contains(node.type) && properties["width"] == nil {
+            view.layoutInfo.fillsWidth = true
+            // Below the pull of filling, for a view with a width of its own.
+            built.setContentHuggingPriority(.fittingSizeLevel, for: .horizontal)
+        }
+        if view is UIStackView {
+            StackLayout.apply(to: view)
+        }
+        return view
     }
 
     /// Builds a `repeat` as the views it puts among its container's children:
@@ -229,6 +248,9 @@ struct NodeBuilder {
                 entry.view.removeFromSuperview()
             }
             repeated.shown = elements.count
+            if let stack {
+                StackLayout.apply(to: stack)
+            }
         }
         return [marker] + first
     }
@@ -247,6 +269,7 @@ struct NodeBuilder {
     ) -> UIView {
         let builder = NodeBuilder(
             components: components,
+            theme: theme,
             actions: actions,
             data: data,
             target: { [target] in
@@ -385,9 +408,10 @@ private extension BuildContext {
     /// `{"color": ..., "width": ...}`, as for `border(color:width:)`.
     func border(_ name: String) -> AnyPublisher<(color: UIColor, width: CGFloat)?, Never>? {
         guard case .object(let fields)? = ComponentSpec.commonProperties[name]?.type else { return nil }
+        let theme = theme
         return value(name, expected: .object(fields)) { json in
             guard case .object(let object) = json, object.count == 2,
-                  let color = object["color"].flatMap(UIColor.parse),
+                  let color = object["color"].flatMap(theme.color(_:)),
                   case .number(let width)? = object["width"], width.isFinite, width >= 0 else { return nil }
             return (color, CGFloat(width))
         }

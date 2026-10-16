@@ -203,6 +203,21 @@
       "issues": [
         { "kind": "typeMismatch", "property": "numberOfLines", "expected": { "type": "integer" }, "at": "templates.title" }
       ]
+    },
+    {
+      "name": "An image name that the app does not have is reported, whether written or referenced",
+      "document": {
+        "v": 1,
+        "templates": { "row": { "type": "hstack", "children": [
+          { "type": "image", "image": "no-such-image" },
+          { "type": "button", "image": "$icon" }
+        ]}},
+        "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "icon": "no-such-icon" } } ] } ]
+      },
+      "issues": [
+        { "kind": "unknownImage", "image": "no-such-image", "at": "templates.row.children[0]" },
+        { "kind": "unknownImage", "image": "no-such-icon", "at": "templates.row.children[1]" }
+      ]
     }
   ]
 }

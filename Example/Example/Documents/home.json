@@ -14,6 +14,7 @@
           { "type": "label", "text": "$title", "font": "headline" },
           { "type": "label", "text": "$detail", "font": "subheadline", "textColor": "secondaryLabel", "numberOfLines": 0 }
         ]},
+        { "type": "spacer" },
         { "type": "image", "image": "chevron.right", "tintColor": "tertiaryLabel", "contentMode": "scaleAspectFit", "width": 12, "height": 18 }
       ]
     }

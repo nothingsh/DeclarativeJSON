@@ -135,16 +135,20 @@ A **length**, such as `width` or `spacing`, is a `number` that is not negative. 
 
 A **color** is one of:
 
-- A name. The names follow the iOS system colors: `label`, `secondaryLabel`, `tertiaryLabel`, `quaternaryLabel`, `placeholderText`, `link`, `separator`, `opaqueSeparator`; `systemBackground`, `secondarySystemBackground`, `tertiarySystemBackground`, `systemGroupedBackground`, `secondarySystemGroupedBackground`, `tertiarySystemGroupedBackground`; `systemFill`, `secondarySystemFill`, `tertiarySystemFill`, `quaternarySystemFill`; `systemRed`, `systemOrange`, `systemYellow`, `systemGreen`, `systemMint`, `systemTeal`, `systemCyan`, `systemBlue`, `systemIndigo`, `systemPurple`, `systemPink`, `systemBrown`; `systemGray` to `systemGray6`; `clear`, `black`, `white`. They mean roles, such as "secondary text", and follow light and dark mode. On Android they will map to the app's Material 3 color scheme where Material has the role, and otherwise take the iOS values.
+- A name in the app's **theme**. The standard theme has the iOS system colors: `label`, `secondaryLabel`, `tertiaryLabel`, `quaternaryLabel`, `placeholderText`, `link`, `separator`, `opaqueSeparator`; `systemBackground`, `secondarySystemBackground`, `tertiarySystemBackground`, `systemGroupedBackground`, `secondarySystemGroupedBackground`, `tertiarySystemGroupedBackground`; `systemFill`, `secondarySystemFill`, `tertiarySystemFill`, `quaternarySystemFill`; `systemRed`, `systemOrange`, `systemYellow`, `systemGreen`, `systemMint`, `systemTeal`, `systemCyan`, `systemBlue`, `systemIndigo`, `systemPurple`, `systemPink`, `systemBrown`; `systemGray` to `systemGray6`; `clear`, `black`, `white`. They mean roles, such as "secondary text", and follow light and dark mode. On Android they will map to the app's Material 3 color scheme where Material has the role, and otherwise take the iOS values. An app can replace these and add names of its own, such as `brand.primary`.
 - `#RRGGBB` or `#RRGGBBAA`, in hexadecimal.
 - `{ "light": color, "dark": color }`, each a name or a hexadecimal color.
 
 A **font** is one of:
 
-- A text style: `largeTitle`, `title1`, `title2`, `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1`, `caption2`. On Android they will map to the app's Material 3 typography.
+- A name in the app's theme. The standard theme has the text styles `largeTitle`, `title1`, `title2`, `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1`, `caption2`. On Android they will map to the app's Material 3 typography. An app can replace these and add names of its own, such as `price`.
 - `{ "size": number, "weight": weight }`, with `size` greater than 0, in points or sp, and an optional weight: `ultraLight`, `thin`, `light`, `regular` (the default), `medium`, `semibold`, `bold`, `heavy`, `black`, from 100 to 900.
 
 Both kinds grow and shrink with the user's text size; `size` is the size at the default text size.
+
+An **image name**, the `image` of `image` and `button`, is a name in the app's theme. The standard theme has no images, so the apps on each platform register the same names for their own images. On iOS, a name the theme does not have is looked up in the app's assets, then among the SF Symbols, which documents written for iOS alone may rely on. A name that is not found shows no image and is reported as `unknownImage`.
+
+The manifest lists the theme's names of colors, fonts and images.
 
 **Insets**, for `padding`, are a length for every edge, or an object with any of `top`, `leading`, `bottom`, `trailing`, `horizontal` and `vertical`. An edge wins over its axis, and edges not given are 0. `leading` and `trailing` follow the layout direction.
 
@@ -173,7 +177,7 @@ A renderer has these components. An app can register more, which its manifest li
 - `label` shows at most `numberOfLines` lines, 0 for no limit, and ends the last one with an ellipsis when the text does not fit.
 - `markdown` on a `label` is shown instead of `text`, which a renderer of an earlier minor version shows instead. It is inline Markdown as CommonMark with the GitHub strikethrough reads it: `*` or `_` for italic, `**` or `__` for bold, `~~` or `~` for strikethrough, `` ` `` for code, which is monospaced and not parsed further, and `\` to escape a marker. HTML entities are decoded. A link or an image shows its text, and cannot be tapped. Everything else stays as written: headings, lists, quotes and other block syntax, line breaks and spaces, HTML tags and bare URLs. The text takes the label's font and color; bold and italic are those of its font, and code a monospaced font of its size. The [shared cases](cases/markdown.json) pin the edge cases.
 - `lineHeight` on a `label` is the height of every line, a length, with the text centered in it. It grows with the text size, as fonts do.
-- `image` shows the image at `url`, downloaded by the app's image loader, and `image`, the name of an image the app has, until the URL's image has loaded. On iOS, a name is looked up in the app's assets, then among the SF Symbols; names will become tokens that each platform maps, since Android has no SF Symbols.
+- `image` shows the image at `url`, downloaded by the app's image loader, and `image`, an [image name](#values), until the URL's image has loaded.
 - `button` is a borderless system button with a title, an image, or both.
 - `textfield` has a rounded border; `isSecureTextEntry` hides what is typed.
 - The names are those of the iOS properties they set. A renderer on another platform keeps the names and translates them:
@@ -202,8 +206,9 @@ These properties are accepted on Android but have no effect, and report nothing:
 
 ## Common properties
 
-Every component takes `width`, `height`, `aspectRatio` (width over height, greater than 0), `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border` (`{ "color": color, "width": length }`, both required), `alpha` (0 transparent, 1 opaque), `tintColor`, `overlay`, `isHidden`, `isVisible`, `accessibilityLabel` and `accessibilityIdentifier`.
+Every component takes `width`, `height`, `aspectRatio` (width over height, greater than 0), `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border` (`{ "color": color, "width": length }`, both required), `alpha` (0 transparent, 1 opaque), `tintColor`, `overlay`, `isHidden`, `isVisible`, `layoutPriority`, `accessibilityLabel` and `accessibilityIdentifier`.
 
+- **`layoutPriority`** decides which children of a stack give way first when it runs out of space; see [Layout](#layout).
 - **`padding`** is inside the background, the corners, the border, `width` and `height`. The accessibility properties apply to the content.
 - **`tintColor`** passes down to the descendants that do not set their own.
 - **`isHidden`** and **`isVisible`**: the view is hidden when `isHidden` is `true` or `isVisible` is `false`. A hidden view takes no space in a stack.
@@ -221,13 +226,18 @@ Every component takes `width`, `height`, `aspectRatio` (width over height, great
 
 ## Layout
 
-> **Draft.** These rules describe what the iOS renderer does today. They become binding, with relational cases in the shared cases, when the Android renderer is designed; where they leave room, iOS is the reference.
+Every renderer lays out a stack by these rules, so that a template keeps its structure on each platform. The [shared cases](cases/layout.json) check them by relations, such as which child gives way, rather than by sizes, since fonts differ.
 
-- **Main axis.** Children are laid out in order, `spacing` apart. Extra space goes to the `spacer`s, shared equally, none shorter than its `minLength`. A hidden child takes no space and no spacing.
-- **Not enough space.** The `spacer`s shrink to their `minLength` first, then the other children. A child with `width` or `height` keeps it. Text that is squeezed wraps up to `numberOfLines` and then ends with an ellipsis. Which of several children gives way first will be set by a `layoutPriority` property, still to come; documents should not rely on the order until then.
-- **Cross axis.** Children are placed by `alignment`; `fill` stretches them to the container's size across. A stack is as large across as its largest child.
-- **Size.** A view is as large as its content unless `width`, `height` or `aspectRatio` set it. A cell in a `list` and a header are as wide as the page; a cell in a `carousel` is as wide as its content; a cell in a `grid` is as wide as its column. All are as tall as their content.
-- **Scrolling containers** (`vscroll`, `hscroll`) scroll their content along their axis.
+- **Main axis.** Children are laid out in order, `spacing` apart. A hidden child takes no space and no spacing.
+- **Extra space** goes to the children that grow, shared equally: a `spacer`; a `textfield`, `slider` or `progress` without a `width`; and a stack with one of them along that axis. Without any, it is left after the last child, and the children keep their own size.
+- **Not enough space.** The `spacer`s shrink to their `minLength` first. Then children give way by `layoutPriority`, a number, 0 by default: the lowest first, and of the same priority, the earliest first. A child gives way as far as it has to, to nothing if needed, before the next one does. A nested stack gives way as one child, and among its own children by the same rule. A child with a `width` or `height` keeps it. Text that is squeezed wraps up to `numberOfLines` and then ends with an ellipsis.
+- **Cross axis.** Children are placed by `alignment`; `fill` stretches them to the stack's size across. A child that grows across, such as a `slider` in a `vstack`, takes the stack's size across too. A stack is as large across as its largest child.
+- **Size.** A view is as large as its content unless `width`, `height` or `aspectRatio` set it. A stack is as large as its content unless something in it grows or the stack it is in stretches it. A cell in a `list` and a header are as wide as the page; a cell in a `carousel` is as wide as its content; a cell in a `grid` is as wide as its column. All are as tall as their content.
+- **Scrolling containers** (`vscroll`, `hscroll`) scroll their content along their axis, which has no extra space and never runs out of it.
+
+`layoutPriority` takes only a constant.
+
+In Compose, a renderer measures the children of a `Row` or `Column` with a custom `Layout`: the spacers' `minLength` first, then the other children from the highest priority to the lowest and, of the same priority, from the last to the first, each with the space that is left; the children that grow share what remains, as with `Modifier.weight`. A `textfield`, `slider` or `progress` without a `width` fills the width it is given.
 
 ## Events and actions
 
@@ -361,6 +371,7 @@ Problems that do not stop the page are **issues**: the part at fault is left out
 | `unknownOperation` | a patch `op` the renderer does not know | skipped |
 | `unexpectedRepeat` | a `repeat` that is not a child of a stack | left out |
 | `unsupportedAction` | `set` or `toggle` in a `repeat` | left out |
+| `unknownImage` | an image name the app does not have | no image |
 
 An issue says where it is with a [path](#nodes): the node, as in `templates.product.children[2]`; the action, as in `templates.product.onTap[1]`; the section or item, as in `sections[0].items[3]`; or the place in a patch. The shared cases write an issue as JSON, such as `{ "kind": "unknownType", "type": "card", "at": "templates.product.children[0]" }`; see [their format](cases/README.md#issues).
 
@@ -380,7 +391,8 @@ An app keeps the release of the renderer it was built with for a long time, so a
 | 3 | `onSuccess` and `onFailure`; patches |
 | 4 | `more`; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
 | 5 | `tracking`; `markdown` and `lineHeight` on `label`; `repeat` |
+| 6 | `layoutPriority`; the layout rules |
 
 ## The manifest
 
-A renderer exports a manifest: every component with its properties and events, the properties every component takes, every action with its parameters and whether it is asynchronous, the operations of a patch, the properties of `repeat`, and `v` and `minor`. Each property has its [type](#values) and whether it takes a reference. The manifest of the iOS library's built-in components and actions is [`manifest.json`](../manifest.json); an app with components or actions of its own exports its own. A backend reads it to check the documents it writes. When the Android renderer comes, each platform will have its manifest, and the difference between them is what the platforms do not yet share.
+A renderer exports a manifest: every component with its properties and events, the properties every component takes, every action with its parameters and whether it is asynchronous, the operations of a patch, the properties of `repeat`, the names of colors, fonts and images in the theme, and `v` and `minor`. Each property has its [type](#values) and whether it takes a reference. The manifest of the iOS library's built-in components and actions is [`manifest.json`](../manifest.json); an app with components, actions or a theme of its own exports its own. A backend reads it to check the documents it writes. When the Android renderer comes, each platform will have its manifest, and the difference between them is what the platforms do not yet share.

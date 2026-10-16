@@ -15,8 +15,8 @@ final class TextLabel: UILabel {
         }
     }
     var lineHeight: Double? { didSet { render() } }
-    /// The label's `font` as written, read for the current text size.
-    var baseFont: JSONValue? { didSet { render() } }
+    /// The label's `font`, read for the current text size.
+    var baseFont: Theme.Font? { didSet { render() } }
     var baseColor: UIColor? { didSet { render() } }
     var alignment: NSTextAlignment = .natural { didSet { render() } }
 
@@ -37,7 +37,7 @@ final class TextLabel: UILabel {
     }
 
     private func render() {
-        let written = baseFont.flatMap { UIFont.parse($0, compatibleWith: traitCollection) }
+        let written = baseFont?.font(compatibleWith: traitCollection)
         shift = 0
         guard markdown != nil || lineHeight != nil else {
             attributedText = nil

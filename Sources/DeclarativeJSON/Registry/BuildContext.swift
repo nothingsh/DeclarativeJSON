@@ -33,15 +33,18 @@ public final class BuildContext<View> {
     /// Where the node is in the document, for issues.
     public let path: String
 
+    /// The page's theme, which has platform types; a `Theme` for UIKit.
+    let themeValue: Any
+    let report: (Issue) -> Void
     private let data: AnyPublisher<[String: JSONValue], Never>
     private let runner: ActionRunner
-    private let report: (Issue) -> Void
 
     init(
         node: Node,
         children: [View],
         path: String,
         data: AnyPublisher<[String: JSONValue], Never>,
+        theme: Any,
         runner: ActionRunner,
         report: @escaping (Issue) -> Void
     ) {
@@ -49,6 +52,7 @@ public final class BuildContext<View> {
         self.children = children
         self.path = path
         self.data = data
+        self.themeValue = theme
         self.runner = runner
         self.report = report
     }

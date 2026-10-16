@@ -31,18 +31,38 @@ public extension PublisherBindable {
 @MainActor
 public extension BuildContext {
 
-    /// A color: a system color name such as `"secondaryLabel"` or
+    /// The page's colors, fonts and images.
+    var theme: Theme {
+        themeValue as? Theme ?? .standard
+    }
+
+    /// A color: a name in the theme, such as `"secondaryLabel"` or
     /// `"systemBlue"`, `"#RRGGBB"` or `"#RRGGBBAA"`, or an object with a
     /// `"light"` and a `"dark"` color in either of those forms.
     func color(_ name: String) -> AnyPublisher<UIColor?, Never>? {
-        value(name, expected: .color, read: UIColor.parse)
+        let theme = theme
+        return value(name, expected: .color, read: theme.color(_:))
     }
 
-    /// A font: a text style such as `"headline"`, or an object with a
-    /// `"size"` and an optional `"weight"` such as `"semibold"`, whose size is
-    /// that at the default text size. Both follow Dynamic Type.
+    /// A font: a name in the theme, such as `"headline"`, or an object with
+    /// a `"size"` and an optional `"weight"` such as `"semibold"`, whose size
+    /// is that at the default text size. Both follow Dynamic Type.
     func font(_ name: String) -> AnyPublisher<UIFont?, Never>? {
-        value(name, expected: .font) { UIFont.parse($0) }
+        themeFont(name)?.map { $0?.font() }.eraseToAnyPublisher()
+    }
+
+    /// An image named in the theme, or in the app's asset catalog, or an SF
+    /// Symbol. A name that is none of them is reported.
+    func image(_ name: String) -> AnyPublisher<UIImage?, Never>? {
+        let theme = theme
+        return string(name)?.map { [report, path] imageName -> UIImage? in
+            guard let imageName else { return nil }
+            guard let image = theme.image(imageName) else {
+                report(Issue(.unknownImage(imageName), at: path))
+                return nil
+            }
+            return image
+        }.eraseToAnyPublisher()
     }
 
     /// Insets: one length for every edge, or an object with any of `top`,
@@ -53,23 +73,40 @@ public extension BuildContext {
     }
 }
 
-extension UIColor {
+@MainActor
+extension BuildContext {
 
-    static func parse(_ json: JSONValue) -> UIColor? {
+    /// A font as `font(_:)` reads it, to read again when the text size
+    /// changes.
+    func themeFont(_ name: String) -> AnyPublisher<Theme.Font?, Never>? {
+        let theme = theme
+        return value(name, expected: .font, read: theme.font(_:))
+    }
+}
+
+private let weights: [String: UIFont.Weight] = [
+    "ultraLight": .ultraLight, "thin": .thin, "light": .light, "regular": .regular,
+    "medium": .medium, "semibold": .semibold, "bold": .bold, "heavy": .heavy, "black": .black,
+]
+
+extension Theme {
+
+    /// A color as written: a name, a hex color, or a light and a dark one.
+    func color(_ json: JSONValue) -> UIColor? {
         switch json {
         case .string(let string):
-            return named(string)
+            return color(named: string)
         case .object(let object):
             guard object.count == 2, case .string(let light)? = object["light"], case .string(let dark)? = object["dark"],
-                  let lightColor = named(light), let darkColor = named(dark) else { return nil }
+                  let lightColor = color(named: light), let darkColor = color(named: dark) else { return nil }
             return UIColor { $0.userInterfaceStyle == .dark ? darkColor : lightColor }
         default:
             return nil
         }
     }
 
-    static func named(_ string: String) -> UIColor? {
-        if let color = systemColors[string] { return color }
+    private func color(named string: String) -> UIColor? {
+        if let color = colors[string] { return color }
         guard string.hasPrefix("#"), string.count == 7 || string.count == 9,
               let value = UInt64(string.dropFirst(), radix: 16) else { return nil }
         let rgba = string.count == 7 ? value << 8 | 0xFF : value
@@ -81,36 +118,11 @@ extension UIColor {
         )
     }
 
-    static let systemColors: [String: UIColor] = [
-        "label": .label, "secondaryLabel": .secondaryLabel, "tertiaryLabel": .tertiaryLabel,
-        "quaternaryLabel": .quaternaryLabel, "placeholderText": .placeholderText, "link": .link,
-        "separator": .separator, "opaqueSeparator": .opaqueSeparator,
-        "systemBackground": .systemBackground, "secondarySystemBackground": .secondarySystemBackground,
-        "tertiarySystemBackground": .tertiarySystemBackground,
-        "systemGroupedBackground": .systemGroupedBackground,
-        "secondarySystemGroupedBackground": .secondarySystemGroupedBackground,
-        "tertiarySystemGroupedBackground": .tertiarySystemGroupedBackground,
-        "systemFill": .systemFill, "secondarySystemFill": .secondarySystemFill,
-        "tertiarySystemFill": .tertiarySystemFill, "quaternarySystemFill": .quaternarySystemFill,
-        "systemRed": .systemRed, "systemOrange": .systemOrange, "systemYellow": .systemYellow,
-        "systemGreen": .systemGreen, "systemMint": .systemMint, "systemTeal": .systemTeal,
-        "systemCyan": .systemCyan, "systemBlue": .systemBlue, "systemIndigo": .systemIndigo,
-        "systemPurple": .systemPurple, "systemPink": .systemPink, "systemBrown": .systemBrown,
-        "systemGray": .systemGray, "systemGray2": .systemGray2, "systemGray3": .systemGray3,
-        "systemGray4": .systemGray4, "systemGray5": .systemGray5, "systemGray6": .systemGray6,
-        "clear": .clear, "black": .black, "white": .white,
-    ]
-}
-
-extension UIFont {
-
-    /// A font as written, at the text size of `traits`, or of the app
-    /// without them.
-    static func parse(_ json: JSONValue, compatibleWith traits: UITraitCollection? = nil) -> UIFont? {
+    /// A font as written: a name, or a size with an optional weight.
+    func font(_ json: JSONValue) -> Font? {
         switch json {
         case .string(let name):
-            guard let style = textStyles[name] else { return nil }
-            return .preferredFont(forTextStyle: style, compatibleWith: traits)
+            return fonts[name]
         case .object(let object):
             guard case .number(let size)? = object["size"], size.isFinite, size > 0 else { return nil }
             var weight = UIFont.Weight.regular
@@ -125,22 +137,11 @@ extension UIFont {
             }
             guard Set(object.keys).isSubset(of: ["size", "weight"]) else { return nil }
             // Scaled as body text is, as an Android sp is.
-            return UIFontMetrics.default.scaledFont(for: .systemFont(ofSize: CGFloat(size), weight: weight), compatibleWith: traits)
+            return .custom(.systemFont(ofSize: CGFloat(size), weight: weight))
         default:
             return nil
         }
     }
-
-    private static let textStyles: [String: UIFont.TextStyle] = [
-        "largeTitle": .largeTitle, "title1": .title1, "title2": .title2, "title3": .title3,
-        "headline": .headline, "subheadline": .subheadline, "body": .body, "callout": .callout,
-        "footnote": .footnote, "caption1": .caption1, "caption2": .caption2,
-    ]
-
-    private static let weights: [String: UIFont.Weight] = [
-        "ultraLight": .ultraLight, "thin": .thin, "light": .light, "regular": .regular,
-        "medium": .medium, "semibold": .semibold, "bold": .bold, "heavy": .heavy, "black": .black,
-    ]
 }
 
 private extension NSDirectionalEdgeInsets {

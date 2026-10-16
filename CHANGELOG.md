@@ -6,6 +6,27 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-16
+
+### Added
+
+- Themes: `Theme` holds the colors, fonts and images that documents name, and `DocumentViewController` takes one. `Theme.standard` has the system colors and text styles as before; an app can replace them and add names of its own. A font in a theme is a `Theme.Font`, which follows Dynamic Type.
+- Image names are looked up in the theme first, then in the asset catalog and among the SF Symbols as before.
+- `BuildContext.theme`, and `BuildContext.image(_:)`, which reads an image name as the built-in components do.
+- `colors`, `fonts` and `images` in the manifest: the names of the theme. `Manifest(components:actions:theme:)` lists those of an app's theme.
+- `layoutPriority`, a property of every component: when a stack runs out of space, the children with the lowest give way first, and of the same priority the earliest.
+- `DocumentVersion.minor` 6, for `layoutPriority` and the layout rules.
+
+### Changed
+
+- Stacks follow the layout rules, which change how some documents look:
+  - Without a spacer, the extra space of a `vstack` or `hstack` is left after its last child. The first child that could grow took it, which pushed the later children to the end. Put a `spacer` where the space should go.
+  - A `textfield`, `slider` or `progress` without a `width` takes the width it is given, sharing it with the spacers.
+  - A stack is the size of its content unless something in it grows. A nested stack could take the extra space before.
+  - When a stack runs out of space, the earliest child gives way first, by its stack as a whole for a child that is a stack. A nested stack could give way first wherever it was.
+- A `vstack` and an `hstack` end with an arranged view of the library's, which takes their extra space. Code that reads `arrangedSubviews` sees it last.
+- An image name that is not found is reported as `unknownImage`; it was ignored. `Issue.Kind` has the case `unknownImage`, which a `switch` over it has to handle.
+
 ## [0.6.0] - 2026-10-16
 
 ### Added
@@ -102,7 +123,8 @@ First release.
 - `manifest.json` and `Manifest`, describing the components and actions for a backend.
 - Example app.
 
-[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.3.0...0.4.0

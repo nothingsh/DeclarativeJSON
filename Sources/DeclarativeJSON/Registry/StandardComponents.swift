@@ -53,7 +53,7 @@ extension ComponentSpec {
         ComponentSpec("image", properties: [
             // Loaded by the app's image loader.
             "url": PropertySpec(.url),
-            // An image in the app's asset catalog, or else an SF Symbol.
+            // An image named in the app's theme.
             "image": PropertySpec(.string),
             "contentMode": PropertySpec(.oneOf([
                 "scaleToFill", "scaleAspectFit", "scaleAspectFill", "center",

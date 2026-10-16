@@ -57,10 +57,12 @@ controller.onIssue = { print($0) }
 - [文档](#文档)
 - [引用](#引用)
 - [组件](#组件)
+- [布局](#布局)
 - [取值](#取值)
 - [事件与动作](#事件与动作)
 - [页面](#页面)
 - [自定义组件](#自定义组件)
+- [主题](#主题)
 - [图片](#图片)
 - [文档里的问题](#文档里的问题)
 - [版本](#版本)
@@ -78,7 +80,7 @@ controller.onIssue = { print($0) }
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.6.0"))
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.7.0"))
 ]
 ```
 
@@ -142,9 +144,9 @@ dependencies: [
 | `progress` | `progress`、`progressTintColor`、`trackTintColor` | |
 | `activity` | `isAnimating`、`hidesWhenStopped`、`color` | |
 
-每个组件还接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
+每个组件还接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`layoutPriority`、`accessibilityLabel` 和 `accessibilityIdentifier`。
 
-- `image` 与 `button` 的 `image` 是 App asset catalog 里的图片名，找不到时按 SF Symbol 处理。`image` 同时有 `url` 时，它一直显示到 URL 的图片加载完成。
+- `image` 与 `button` 的 `image` 是[主题](#主题)里的图片名，主题里没有时在 App 的 asset catalog 里找，再找不到时按 SF Symbol 处理。`image` 同时有 `url` 时，它一直显示到 URL 的图片加载完成。
 - 不是 stack 也不是滚动视图的视图设了 `padding`，会被放进一个带该内边距的 stack。除无障碍属性外，其余通用属性都作用在这个 stack 上，所以背景会覆盖内边距。
 - 设了 `onTap` 的 `vstack` 或 `hstack`，点按其中任意位置都会执行它的动作，因此可以点按整行；按住时 stack 显示高亮，`"highlight": false` 关闭高亮。其中的控件，如按钮或开关，仍处理自己的点按，也不让 stack 高亮。给这个 stack 设 `accessibilityLabel`，VoiceOver 会把它读作一个按钮。
 - `overlay` 在视图前面放一个节点，或一组节点，后面的在上层。每个是 `{ "alignment": ..., "offset": { "x": ..., "y": ... }, "content": 节点 }`。`alignment` 取 `fill`（默认）、`center`、`top`、`bottom`、`leading`、`trailing`、`topLeading`、`topTrailing`、`bottomLeading` 或 `bottomTrailing`。`offset` 移动内容，x 朝 trailing 边、y 朝下；`fill` 不接受 `offset`。尺寸由视图决定，`clipsToBounds` 也会裁掉叠放内容。`content` 里的引用读条目数据。除非叠放里有节点设了事件，触摸会穿过它交给后面的视图。`overlay` 只接受常量。
@@ -170,10 +172,27 @@ dependencies: [
 - `label` 的 `lineHeight` 设定每行的高度，文字在行内垂直居中。它和字体一样随系统字号缩放。
 - `textfield` 带圆角边框。`label` 与 `textfield` 跟随动态字体。
 
+## 布局
+
+stack 按顺序排列子节点，间隔 `spacing`：
+
+- 多出的空间由会伸展的子节点平分：`spacer`，没写 `width` 的 `textfield`、`slider`、`progress`，以及含有它们的 stack。没有这样的子节点时，空间留在最后一个子节点之后；要把空间放在别处，例如末尾的箭头之前，就在那里放一个 `spacer`。
+- 空间不够时，先把 spacer 压到 `minLength`，再按 `layoutPriority`（默认 0）压缩其他子节点：低的先压缩，相同时靠前的先压缩。标题在价格前面时标题先被压缩、价格保持完整；要让标题完整，就给它更高的 `layoutPriority`。写了 `width` 或 `height` 的子节点保持该尺寸。
+
+```json
+{ "type": "hstack", "spacing": 8, "children": [
+  { "type": "label", "text": "$title" },
+  { "type": "spacer" },
+  { "type": "label", "text": "$price", "layoutPriority": 1 }
+]}
+```
+
+`layoutPriority` 只接受常量。0.7.0 之前的版本会忽略它，并且在有多余空间又没有 spacer 时拉伸第一个能拉伸的子节点。
+
 ## 取值
 
-- **颜色**：系统颜色名，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。边框颜色只读取一次，之后在浅色与深色模式间切换时不会跟着变。
-- **字体**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重从 `ultraLight` 到 `black`。这个字号是默认文字大小下的字号，随用户设置的文字大小放大缩小，与正文相同。
+- **颜色**：[主题](#主题)里的颜色名，默认就是系统颜色名，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。边框颜色只读取一次，之后在浅色与深色模式间切换时不会跟着变。
+- **字体**：主题里的字体名，默认就是 text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重从 `ultraLight` 到 `black`。这个字号是默认文字大小下的字号，随用户设置的文字大小放大缩小，与正文相同。
 - **内边距**（`padding`）：一个数字表示四边相同，或一个对象，含 `top`、`leading`、`bottom`、`trailing`、`horizontal`、`vertical` 中任意几个。单边优先于所在的轴，没写的边为 0。
 - **长度**，如 `width` 和 `minLength`，必须是有限且非负的数；`aspectRatio` 必须大于 0。
 
@@ -379,9 +398,27 @@ components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.
 let controller = DocumentViewController(document: document, components: components, actions: actions)
 ```
 
-`BuildContext` 把每个属性读成 publisher，节点没设该属性时返回 nil。常量发出一次；引用随条目数据的每个值发出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 读取上文的各种类型，`choice` 读取一组字符串之一，`value` 读取其他任何东西。`onValue` 把属性应用到视图，`onEvent` 在视图的某个 publisher 上执行 `context.action(.onTap)`，并把这个视图作为动作的 `sourceView`。要自己执行动作，就用事件的值和视图调用 `context.action` 返回的值：`action(.bool(isOn), source: view)`。spec 写了 `acceptsChildren: true` 时，子节点已替你建好，放在 `context.children`。通用属性会作用在你返回的视图上。
+`BuildContext` 把每个属性读成 publisher，节点没设该属性时返回 nil。常量发出一次；引用随条目数据的每个值发出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font`、`image` 和 `insets` 按页面的 `theme` 读取上文的各种类型，`choice` 读取一组字符串之一，`value` 读取其他任何东西。`onValue` 把属性应用到视图，`onEvent` 在视图的某个 publisher 上执行 `context.action(.onTap)`，并把这个视图作为动作的 `sourceView`。要自己执行动作，就用事件的值和视图调用 `context.action` 返回的值：`action(.bool(isOn), source: view)`。spec 写了 `acceptsChildren: true` 时，子节点已替你建好，放在 `context.children`。通用属性会作用在你返回的视图上。
 
 注册已有的类型会替换它。`repeat` 不是组件，不能注册：这个类型的节点总是 [`repeat`](#组件)。
+
+## 主题
+
+文档里的颜色名、字体名和图片名都来自页面的 `Theme`。`Theme.standard` 以 UIKit 的名字提供系统颜色与 text style，没有图片。替换一个名字，所有用到它的文档都随之改变；也可以加上自己的名字：
+
+```swift
+var theme = Theme.standard
+theme.colors["brand.primary"] = UIColor(named: "BrandPrimary")
+theme.colors["secondaryLabel"] = UIColor(named: "Subtitle")
+theme.fonts["price"] = .custom(.systemFont(ofSize: 20, weight: .bold))
+theme.fonts["headline"] = .custom(UIFont(name: "Avenir-Heavy", size: 17)!, relativeTo: .headline)
+theme.images["heart.fill"] = UIImage(systemName: "heart.fill")
+let controller = DocumentViewController(document: document, theme: theme)
+```
+
+主题里的字体跟随动态字体：`.textStyle(_:)` 与该 text style 相同；`.custom(_:relativeTo:)` 从给定字号出发，按给定的 text style 的比例放大缩小，默认是 body。颜色可以是动态颜色，跟随浅色与深色模式。
+
+主题里没有的图片名会依次在 asset catalog 和 SF Symbols 里找；都找不到时上报 `unknownImage`，不显示图片。其他平台也要显示的文档应只用主题里的名字，由各平台的 App 各自注册。
 
 ## 图片
 
@@ -407,6 +444,7 @@ URL 变化时，视图取消之前的加载并忽略它的结果。
 - 不是带 `type` 的对象的节点、未知或写错的动作、重复的 `id`、模板不存在的条目或 header 会被去掉；
 - 未知的 `layout` 按列表显示；
 - stack 之外的 `repeat`，以及 `repeat` 里的 `set` 与 `toggle`，会被移除；
+- 找不到的图片名不显示图片；
 - patch 里未知的操作、页面没有的 `id`，以及插入处页面已有的 `id`，会被跳过。
 
 每个 `Issue` 都写明位置，例如 `templates.product.children[2]`；patch 的问题写 patch 里的位置，例如 `operations[1].items[0]`。patch 的问题每次应用都会上报。
@@ -423,6 +461,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；颜色 `systemMint`、`systemCyan`、`systemBrown` |
 | 5 | 0.6.0 | 条目的 `tracking`；`label` 的 `markdown` 与 `lineHeight`；`repeat` |
+| 6 | 0.7.0 | `layoutPriority`；[布局规则](#布局) |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
@@ -438,10 +477,10 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清单
 
-[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，patch 的操作、`repeat` 的属性，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
+[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，patch 的操作、`repeat` 的属性、标准主题的颜色名、字体名和图片名，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件、动作和主题：
 
 ```swift
-let manifest = try Manifest(components: components, actions: actions).encoded()
+let manifest = try Manifest(components: components, actions: actions, theme: theme).encoded()
 ```
 
 [`protocol/`](protocol/README.md) 用不依赖 iOS 的说法描述格式本身，写给后端和其他平台的渲染器，并附有每个渲染器都要跑的[共用用例](protocol/cases/README.md)。

@@ -30,6 +30,7 @@ extension Issue {
         case .unknownOperation(let name): kind("unknownOperation", ["operation": .string(name)])
         case .unexpectedRepeat: kind("unexpectedRepeat")
         case .unsupportedAction(let name): kind("unsupportedAction", ["action": .string(name)])
+        case .unknownImage(let name): kind("unknownImage", ["image": .string(name)])
         }
         return .object(object)
     }
