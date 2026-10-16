@@ -6,13 +6,21 @@ import UIKit
 /// its text as a plain label.
 final class TextLabel: UILabel {
     var plainText: String? { didSet { render() } }
-    var markdown: String? { didSet { render() } }
+    var markdown: String? {
+        didSet {
+            // Parsed here rather than in `render`, which the other properties
+            // run too.
+            markdownRuns = markdown.map(Self.runs)
+            render()
+        }
+    }
     var lineHeight: Double? { didSet { render() } }
     /// The label's `font` as written, read for the current text size.
     var baseFont: JSONValue? { didSet { render() } }
     var baseColor: UIColor? { didSet { render() } }
     var alignment: NSTextAlignment = .natural { didSet { render() } }
 
+    private var markdownRuns: [(text: String, styles: Set<TextStyle>)]?
     /// How far up the text is drawn, so that it sits in the middle of each
     /// line rather than at its bottom.
     private var shift: CGFloat = 0
@@ -50,7 +58,7 @@ final class TextLabel: UILabel {
         // last line rather than end it with an ellipsis.
         paragraph.lineBreakMode = .byTruncatingTail
         let result = NSMutableAttributedString()
-        let runs: [(text: String, styles: Set<TextStyle>)] = markdown.map(Self.runs) ?? [(plainText ?? "", Set<TextStyle>())]
+        let runs = markdownRuns ?? [(plainText ?? "", Set<TextStyle>())]
         for run in runs {
             var attributes: [NSAttributedString.Key: Any] = [
                 .font: Self.font(font, run.styles), .foregroundColor: baseColor ?? .label, .paragraphStyle: paragraph,
