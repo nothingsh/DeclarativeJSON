@@ -236,7 +236,7 @@ Other actions report `onSuccess` and `onFailure` as unknown properties, and so d
 
 ## The page
 
-`DocumentViewController` shows a document in a collection view. The page is the collection view's delegate and data source; the rest of `collectionView` is yours to configure, for example to add a refresh control. Set `scrollViewDelegate` to get the scroll view's callbacks.
+`DocumentViewController` shows a document in a collection view. The page is the collection view's delegate and data source; the rest of `collectionView` is yours to configure, for example its content insets. Set `scrollViewDelegate` to get the scroll view's callbacks.
 
 Each cell builds its template's views the first time it is shown and keeps them; showing another item only sends that item's data to the bindings. `set` and `toggle` change the page's copy of the item's data, so the change stays when the cell scrolls away and back, and the cell resizes to its new content.
 
@@ -294,7 +294,46 @@ controller.onLoadMore = { [weak controller] section, more in
 }
 ```
 
-Until then, a list or grid section shows a spinner below its items, and the page does not ask for that section again. After `showLoadMoreFailure(in:)` it shows a button that tries again, and scrolling back to the end of the section tries again too. A carousel shows neither and asks when it is scrolled near its end. A patch that appends to, replaces or inserts the section, or `setDocument`, ends the loading. Releases before 0.5.0 ignore `more` and skip `appendItems`.
+Until then, a list or grid section shows a spinner below its items, and the page does not ask for that section again. After `showLoadMoreFailure(in:)` it shows a button that tries again, and scrolling back to the end of the section tries again too. A carousel shows neither and asks when it is scrolled near its end. A patch that appends to, replaces or inserts the section, or `setDocument`, ends the loading.
+
+The spinner and the button, whose VoiceOver label is in English, are the default. To show your own, such as localized text, set `makeLoadMoreView` to make a `UIView` that adopts `LoadMoreView`: the page calls its `showLoading()`, and its `showFailure(retry:)` with a closure for your button to call. It sizes itself with Auto Layout, and the page reuses it for other sections.
+
+```swift
+controller.makeLoadMoreView = { MyLoadMoreView() }
+```
+
+Releases before 0.5.0 ignore `more` and skip `appendItems`.
+
+### Loading, failure and refreshing
+
+A page created without a document shows `loadingView` until `setDocument`. `showLoading()` shows it again in place of the sections, and `showFailure(retry:)` shows `failureView`, whose button calls `retry()`: that shows `loadingView` again and calls your closure. `setDocument` and `apply` show the sections again. A page without items, none of whose sections has `more`, shows `emptyView`.
+
+Setting `onRefresh` adds a refresh control. The page calls it when the user pulls down, with a closure to call when you are done:
+
+```swift
+let controller = DocumentViewController(actions: actions)   // shows loadingView
+func load() {
+    Task {
+        do {
+            controller.setDocument(try DocumentDecoder().decode(try await api.page()))
+        } catch {
+            controller.showFailure { load() }
+        }
+    }
+}
+load()
+
+controller.onRefresh = { done in
+    Task {
+        if let data = try? await api.page(), let document = try? DocumentDecoder().decode(data) {
+            controller.setDocument(document)
+        }
+        done()
+    }
+}
+```
+
+The views are shown behind the sections, filling the collection view, so an empty or failed page can still be pulled. The default ones are a spinner and English messages; set `loadingView`, `failureView` and `emptyView` to your own, such as a skeleton of the page or localized text, and have your failure view call `retry()`. A refresh that fails needs no `showFailure`: call `done`, and the page keeps what it shows.
 
 ## Your own components
 

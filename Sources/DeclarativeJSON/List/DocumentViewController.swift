@@ -19,6 +19,14 @@ private enum LoadingMore {
     case failed
 }
 
+/// What the page shows: its sections, or in their place a spinner or a
+/// failure.
+private enum PageState {
+    case content
+    case loading
+    case failure(retry: () -> Void)
+}
+
 /// Shows a document's sections in a collection view.
 ///
 /// ```swift
@@ -39,6 +47,9 @@ private enum LoadingMore {
 ///
 /// The page is the collection view's delegate and data source; set
 /// `scrollViewDelegate` to get the scroll view's callbacks.
+///
+/// Without a document, the page shows `loadingView` until `setDocument`. To
+/// show that a request failed, call `showFailure(retry:)`.
 public final class DocumentViewController: UIViewController {
     public let components: ComponentRegistry<UIView>
     public let actions: ActionRegistry
@@ -55,9 +66,51 @@ public final class DocumentViewController: UIViewController {
     /// spinner and the page asks for no more of that section.
     public var onLoadMore: ((_ section: String, _ more: JSONValue) -> Void)?
 
+    /// Makes the view below a list or grid section with `more`, by default a
+    /// spinner, or a button that tries again after loading failed. The page
+    /// makes one for each footer it shows and reuses them for other sections;
+    /// replacing this replaces those shown.
+    public var makeLoadMoreView: () -> LoadMoreView = { DefaultLoadMoreView() } {
+        didSet {
+            loadMoreViewGeneration += 1
+            guard isViewLoaded else { return }
+            for indexPath in collectionView.indexPathsForVisibleSupplementaryElements(ofKind: LoadMoreFooter.kind)
+            where indexPath.section < sections.count {
+                reconfigureFooter(of: sections[indexPath.section].id)
+            }
+        }
+    }
+
     /// Gets the collection view's scroll view callbacks, as its delegate
     /// would. The collection view's own delegate is the page.
     public weak var scrollViewDelegate: UIScrollViewDelegate?
+
+    /// Called when the user pulls the page down, with a closure to call once
+    /// refreshing is done. Load the page, show it with `setDocument`, then
+    /// call the closure. Setting it adds a refresh control to the collection
+    /// view, and setting it to nil removes it.
+    public var onRefresh: ((_ done: @escaping () -> Void) -> Void)? {
+        didSet { updateRefreshControl() }
+    }
+
+    /// Shown in place of the sections after `showLoading()`, by default a
+    /// spinner. Replace it with your own, such as a skeleton of the page.
+    public var loadingView: UIView = PageStateViews.loading() {
+        didSet { updateBackground() }
+    }
+
+    /// Shown in place of the sections after `showFailure(retry:)`, by default
+    /// a message with a button that calls `retry()`. A view of your own calls
+    /// `retry()` too.
+    public var failureView = UIView() {
+        didSet { updateBackground() }
+    }
+
+    /// Shown when the page has no items and no section has `more`, by default
+    /// a message.
+    public var emptyView: UIView = PageStateViews.empty() {
+        didSet { updateBackground() }
+    }
 
     public private(set) lazy var collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
 
@@ -68,19 +121,28 @@ public final class DocumentViewController: UIViewController {
     private var reportedIssues: Set<Issue> = []
     private var registeredTemplates: Set<String> = []
     private var loadingMore: [String: LoadingMore] = [:]
+    /// How many times `makeLoadMoreView` was replaced, for the footers to
+    /// tell whether their view is current.
+    private var loadMoreViewGeneration = 0
+    private var state = PageState.content
     private lazy var collectionDelegate = CollectionDelegate(page: self)
     /// The asynchronous actions running for the page, cancelled with it.
     let tasks = ActionTasks()
 
+    /// Creates a page that shows `document`, or `loadingView` without one.
     public init(
-        document: Document,
+        document: Document? = nil,
         components: ComponentRegistry<UIView> = .standard,
         actions: ActionRegistry = .standard
     ) {
-        self.document = document
+        self.document = document ?? Document(templates: [:], sections: [], issues: [])
         self.components = components
         self.actions = actions
         super.init(nibName: nil, bundle: nil)
+        failureView = PageStateViews.failure { [weak self] in self?.retry() }
+        if document == nil {
+            state = .loading
+        }
     }
 
     @available(*, unavailable)
@@ -133,6 +195,7 @@ public final class DocumentViewController: UIViewController {
         self.document = document
         reportedIssues = []
         loadingMore = [:]
+        state = .content
         if isViewLoaded {
             show(document, animatingDifferences: animatingDifferences)
             loadMoreIfShown()
@@ -153,6 +216,7 @@ public final class DocumentViewController: UIViewController {
         (patch.issues + result.issues).forEach { onIssue?($0) }
         let sectionIDs = Set(document.sections.map(\.id))
         loadingMore = loadingMore.filter { sectionIDs.contains($0.key) && !result.loadedSections.contains($0.key) }
+        state = .content
         if isViewLoaded {
             var kept = data
             for id in result.changedItems {
@@ -163,6 +227,37 @@ public final class DocumentViewController: UIViewController {
             }
             show(document, keeping: kept, animatingDifferences: animatingDifferences)
             loadMoreIfShown()
+        }
+    }
+
+    /// Shows `loadingView` in place of the sections, such as while the page
+    /// loads again, until `setDocument` or `apply`.
+    public func showLoading() {
+        setState(.loading)
+    }
+
+    /// Shows `failureView` in place of the sections, until `setDocument` or
+    /// `apply`. `retry()` shows `loadingView` and calls `retry`, which loads
+    /// the page again.
+    ///
+    /// A pull to refresh that fails has no need of it: call its `done`, and
+    /// the page keeps what it shows.
+    public func showFailure(retry: @escaping () -> Void) {
+        setState(.failure(retry: retry))
+    }
+
+    /// Tries loading again after `showFailure(retry:)`: shows `loadingView`
+    /// and calls the `retry` given there. Does nothing otherwise.
+    public func retry() {
+        guard case .failure(let retry) = state else { return }
+        showLoading()
+        retry()
+    }
+
+    private func setState(_ state: PageState) {
+        self.state = state
+        if isViewLoaded {
+            show(document, keeping: data, animatingDifferences: false)
         }
     }
 
@@ -226,10 +321,49 @@ public final class DocumentViewController: UIViewController {
             }
         }
 
-        dataSource?.apply(snapshot, animatingDifferences: animatingDifferences)
+        if case .content = state {
+            dataSource?.apply(snapshot, animatingDifferences: animatingDifferences)
+        } else {
+            // The sections stay set up, for a patch applied after.
+            dataSource?.apply(NSDiffableDataSourceSnapshot(), animatingDifferences: false)
+        }
+        updateBackground()
         // The data source configures only the cells it adds; those it keeps
         // show the new data from here.
         reconfigureVisibleViews()
+    }
+
+    /// Shows the view of the page's state behind the sections, where it fills
+    /// the collection view and a pull to refresh still reaches it.
+    private func updateBackground() {
+        guard isViewLoaded else { return }
+        switch state {
+        case .loading:
+            collectionView.backgroundView = loadingView
+        case .failure:
+            collectionView.backgroundView = failureView
+        case .content:
+            let isEmpty = items.isEmpty && !sections.contains { $0.more != nil }
+            collectionView.backgroundView = isEmpty ? emptyView : nil
+        }
+    }
+
+    private func updateRefreshControl() {
+        guard onRefresh != nil else {
+            collectionView.refreshControl = nil
+            return
+        }
+        guard collectionView.refreshControl == nil else { return }
+        let control = UIRefreshControl()
+        control.addTarget(self, action: #selector(refresh), for: .valueChanged)
+        collectionView.refreshControl = control
+        // So that an empty page can be pulled.
+        collectionView.alwaysBounceVertical = true
+    }
+
+    @objc private func refresh() {
+        let control = collectionView.refreshControl
+        onRefresh? { [weak control] in control?.endRefreshing() }
     }
 
     private func register(_ template: String) {
@@ -262,10 +396,15 @@ public final class DocumentViewController: UIViewController {
 
     private func configureFooter(_ view: UICollectionReusableView, section: String) {
         guard let footer = view as? LoadMoreFooter else { return }
-        footer.show(failed: loadingMore[section] == .failed) { [weak self] in
-            guard let self, let index = sections.firstIndex(where: { $0.id == section }) else { return }
-            loadMore(index)
-        }
+        footer.show(
+            failed: loadingMore[section] == .failed,
+            retry: { [weak self] in
+                guard let self, let index = sections.firstIndex(where: { $0.id == section }) else { return }
+                loadMore(index)
+            },
+            make: makeLoadMoreView,
+            generation: loadMoreViewGeneration
+        )
     }
 
     private func reconfigureFooter(of section: String) {
