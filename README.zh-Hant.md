@@ -381,7 +381,7 @@ let controller = DocumentViewController(document: document, components: componen
 
 `BuildContext` 把每個屬性讀成 publisher，節點沒設定該屬性時回傳 nil。常數送出一次；引用隨項目資料的每個值送出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 讀取上文的各種型別，`choice` 讀取一組字串之一，`value` 讀取其他任何東西。`onValue` 把屬性套用到視圖，`onEvent` 在視圖的某個 publisher 上執行 `context.action(.onTap)`，並把這個視圖當作動作的 `sourceView`。要自己執行動作，就用事件的值和視圖呼叫 `context.action` 回傳的值：`action(.bool(isOn), source: view)`。spec 寫了 `acceptsChildren: true` 時，子節點已替你建好，放在 `context.children`。通用屬性會作用在你回傳的視圖上。
 
-註冊已有的型別會取代它。
+註冊已有的型別會取代它。`repeat` 不是元件，不能註冊：這個型別的節點一律是 [`repeat`](#元件)。
 
 ## 圖片
 

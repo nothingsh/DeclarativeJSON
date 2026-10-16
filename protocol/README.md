@@ -152,7 +152,7 @@ A value of the wrong type, or out of range, is treated as missing and reported a
 
 ## Components
 
-A renderer has these components. An app can register more, which its manifest lists.
+A renderer has these components. An app can register more, which its manifest lists, but not one named `repeat`, which is always a [repeat](#repeat).
 
 | Type | Properties | Events |
 | --- | --- | --- |
