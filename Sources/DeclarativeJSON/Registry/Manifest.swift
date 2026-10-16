@@ -83,7 +83,7 @@ public struct Manifest {
         })
     }
 
-    private static func json(_ type: PropertyType) -> [String: JSONValue] {
+    static func json(_ type: PropertyType) -> [String: JSONValue] {
         switch type {
         case .number, .integer, .bool, .string, .url, .color, .font, .insets, .node, .any:
             return ["type": .string(type.name)]
