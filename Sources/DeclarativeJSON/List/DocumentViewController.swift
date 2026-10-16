@@ -188,12 +188,28 @@ public final class DocumentViewController: UIViewController {
         collectionView.collectionViewLayout.invalidateLayout()
     }
 
-    /// Keeps the data an action changed, then lets the cell show it, then
-    /// sizes the cells again for it.
-    func update(_ data: [String: JSONValue], for key: TemplateKey, show: () -> Void) {
-        self.data[key] = data
-        show()
+    /// Changes the data the page keeps for an item or a header, shows it in
+    /// the view that shows it now, if any, then sizes the cells again for it.
+    /// Returns the changed data, or nil when the page no longer has the item
+    /// or the header.
+    func update(_ key: TemplateKey, _ change: (inout [String: JSONValue]) -> Void) -> [String: JSONValue]? {
+        guard var changed = data[key] else { return nil }
+        change(&changed)
+        data[key] = changed
+        switch key {
+        case .item(let id):
+            if let indexPath = dataSource?.indexPath(for: id), let cell = collectionView.cellForItem(at: indexPath) {
+                configure(cell, id: id)
+            }
+        case .header(let id):
+            let kind = UICollectionView.elementKindSectionHeader
+            if let index = sections.firstIndex(where: { $0.id == id }),
+               let view = collectionView.supplementaryView(forElementKind: kind, at: IndexPath(item: 0, section: index)) {
+                configure(view, section: sections[index])
+            }
+        }
         collectionView.collectionViewLayout.invalidateLayout()
+        return changed
     }
 
     func report(_ issue: Issue) {

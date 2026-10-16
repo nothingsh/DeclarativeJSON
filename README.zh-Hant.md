@@ -194,6 +194,17 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` 用 `string`、`url`、`bool` 和 `number` 讀取參數，型別不對時會回報；`parameters` 給出全部參數。`event` 是事件的值，`data` 是項目的資料，`update { $0["key"] = … }` 像 `set` 一樣修改資料。
 
+`update` 也可以在處理閉包回傳之後呼叫，例如請求完成時。修改仍會套用到觸發動作的那個項目，即使它的 cell 此時已經在顯示別的項目；修改作用在項目當時的資料上。頁面裡已經沒有這個項目時（例如 `setDocument` 之後），什麼都不會改。
+
+```swift
+actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
+    Task {
+        let liked = await api.like(context.string("id"))
+        context.update { $0["liked"] = .bool(liked) }
+    }
+}
+```
+
 ## 頁面
 
 `DocumentViewController` 在 collection view 裡顯示文件。它的 `collectionView` 可以由你設定，例如加上下拉更新。

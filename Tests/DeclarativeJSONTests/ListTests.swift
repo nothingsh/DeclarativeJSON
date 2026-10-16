@@ -13,9 +13,10 @@ final class ListTests: XCTestCase {
 
     private func show(
         _ json: String,
-        components: ComponentRegistry<UIView> = .standard
+        components: ComponentRegistry<UIView> = .standard,
+        actions: ActionRegistry = .standard
     ) throws -> DocumentViewController {
-        let controller = DocumentViewController(document: try document(json), components: components)
+        let controller = DocumentViewController(document: try document(json), components: components, actions: actions)
         controller.onIssue = { [unowned self] in issues.append($0) }
         controller.loadViewIfNeeded()
         controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
@@ -133,6 +134,79 @@ final class ListTests: XCTestCase {
         scroll(to: 0)
         let shown = try XCTUnwrap(cell(controller, 0))
         XCTAssertTrue(views(UILabel.self, in: shown).contains { $0.text == "Details" && !$0.isHidden })
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAChangeMadeAfterTheActionReturnedGoesToItsItemAndKeepsTheChangesMadeInBetween() throws {
+        var later: ActionContext?
+        var actions = ActionRegistry.standard
+        actions.register(ActionSpec("later")) { later = $0 }
+        let items = (0..<40).map {
+            #"{ "id": "\#($0)", "template": "row", "data": { "title": "Item \#($0)", "liked": false, "expanded": false } }"#
+        }
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "row": { "type": "vstack", "alignment": "fill", "children": [
+            { "type": "label", "text": "$title" },
+            { "type": "label", "text": "Liked", "isVisible": "$liked" },
+            { "type": "label", "text": "Details", "isVisible": "$expanded" },
+            { "type": "button", "title": "Like", "onTap": { "action": "later" } },
+            { "type": "button", "title": "More", "onTap": { "action": "toggle", "path": "expanded" } }
+          ]}},
+          "sections": [ { "id": "s", "items": [ \(items.joined(separator: ",")) ] } ] }
+        """, actions: actions)
+        let collectionView = controller.collectionView
+        // Without prefetching, a cell that leaves is reused for the next item.
+        collectionView.isPrefetchingEnabled = false
+        let first = try XCTUnwrap(cell(controller, 0))
+        let buttons = views(UIButton.self, in: first)
+        buttons[0].fire(.touchUpInside)
+        let context = try XCTUnwrap(later)
+        // Item 0 changes while the app waits, as for a request.
+        buttons[1].fire(.touchUpInside)
+        collectionView.layoutIfNeeded()
+
+        // Finishes the like once the first cell is reused for another item.
+        var likedShownInReuse: Bool?
+        let end = collectionView.contentSize.height - collectionView.bounds.height
+        for step in 1...20 where likedShownInReuse == nil {
+            collectionView.contentOffset.y = end * CGFloat(step) / 20
+            collectionView.layoutIfNeeded()
+            if collectionView.visibleCells.contains(first), views(UILabel.self, in: first).first?.text != "Item 0" {
+                context.update { $0["liked"] = .bool(true) }
+                likedShownInReuse = views(UILabel.self, in: first).contains { $0.text == "Liked" && !$0.isHidden }
+            }
+        }
+        XCTAssertEqual(likedShownInReuse, false, "the first cell shows another item")
+
+        collectionView.contentOffset.y = 0
+        collectionView.layoutIfNeeded()
+        let shown = views(UILabel.self, in: try XCTUnwrap(cell(controller, 0))).filter { !$0.isHidden }.compactMap(\.text)
+        XCTAssertTrue(shown.contains("Liked"))
+        XCTAssertTrue(shown.contains("Details"), "the change made in between stays")
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAnActionInAHeaderChangesTheHeadersData() throws {
+        let controller = try show("""
+        { "v": 1,
+          "templates": {
+            "title": { "type": "vstack", "children": [
+              { "type": "label", "text": "Filters", "isVisible": "$expanded" },
+              { "type": "button", "title": "Show", "onTap": { "action": "toggle", "path": "expanded" } }
+            ]},
+            "row": { "type": "label", "text": "$title" }
+          },
+          "sections": [ { "id": "s", "header": { "template": "title", "data": { "expanded": false } },
+            "items": [ { "id": "a", "template": "row", "data": { "title": "A" } } ] } ] }
+        """)
+        let header = try XCTUnwrap(controller.collectionView.supplementaryView(
+            forElementKind: UICollectionView.elementKindSectionHeader, at: IndexPath(item: 0, section: 0)
+        ))
+
+        views(UIButton.self, in: header).first?.fire(.touchUpInside)
+
+        XCTAssertTrue(views(UILabel.self, in: header).contains { $0.text == "Filters" && !$0.isHidden })
         XCTAssertEqual(issues, [])
     }
 

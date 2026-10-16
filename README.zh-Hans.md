@@ -194,6 +194,17 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` 用 `string`、`url`、`bool` 和 `number` 读取参数，类型不对时会上报；`parameters` 给出全部参数。`event` 是事件的值，`data` 是条目的数据，`update { $0["key"] = … }` 像 `set` 一样修改数据。
 
+`update` 也可以在处理闭包返回之后调用，比如请求完成时。改动仍然落到触发动作的那个条目上，即使它的 cell 此时已经在显示别的条目；改动作用在条目当时的数据上。页面里已经没有这个条目时（比如 `setDocument` 之后），什么也不改。
+
+```swift
+actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
+    Task {
+        let liked = await api.like(context.string("id"))
+        context.update { $0["liked"] = .bool(liked) }
+    }
+}
+```
+
 ## 页面
 
 `DocumentViewController` 在 collection view 里显示文档。它的 `collectionView` 可以由你配置，例如加上下拉刷新。

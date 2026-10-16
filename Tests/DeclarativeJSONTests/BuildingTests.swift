@@ -16,7 +16,14 @@ final class BuildingTests: XCTestCase {
         var decodeIssues: [Issue] = []
         let node = try XCTUnwrap(Node(value, path: "t", issues: &decodeIssues))
         let builder = NodeBuilder(
-            components: components, actions: .standard, data: data, update: { [data] in data.send($0) }
+            components: components, actions: .standard, data: data, updater: { [data] in
+                { change in
+                    var changed = data.value
+                    change(&changed)
+                    data.send(changed)
+                    return changed
+                }
+            }
         ) { [unowned self] in
             issues.append($0)
         }
