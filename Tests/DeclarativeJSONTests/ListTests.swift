@@ -384,4 +384,127 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(builds, 4)
         XCTAssertEqual(views(UILabel.self, in: cell(controller, 1)).map(\.text), ["New"])
     }
+
+    private func patch(_ json: String) throws -> Patch {
+        try DocumentDecoder().decodePatch(Data(json.utf8))
+    }
+
+    private func footer(_ controller: DocumentViewController, section: Int = 0) -> LoadMoreFooter? {
+        controller.collectionView.supplementaryView(
+            forElementKind: LoadMoreFooter.kind, at: IndexPath(item: 0, section: section)
+        ) as? LoadMoreFooter
+    }
+
+    func testScrollingNearTheEndOfASectionWithMoreAsksForItsNextItemsOnce() throws {
+        let items = (0..<30).map { #"{ "id": "\#($0)", "template": "row", "data": { "title": "Item \#($0)" } }"# }
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "row": { "type": "label", "text": "$title", "height": 40 } },
+          "sections": [ { "id": "feed", "more": "page2", "items": [ \(items.joined(separator: ",")) ] } ] }
+        """)
+        var requests: [(String, JSONValue)] = []
+        let asked = expectation(description: "asked for more")
+        controller.onLoadMore = { requests.append(($0, $1)); asked.fulfill() }
+        let collectionView = controller.collectionView
+        func scroll(to y: CGFloat) {
+            let start = collectionView.contentOffset.y
+            for step in 1...10 {
+                collectionView.contentOffset.y = start + (y - start) * CGFloat(step) / 10
+                collectionView.layoutIfNeeded()
+            }
+        }
+
+        // The page asks from item 25 on; items 10 to 22 show. iOS 15 shows a
+        // little more than the bounds.
+        scroll(to: 400)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+        XCTAssertEqual(requests.count, 0)
+
+        let end = collectionView.contentSize.height - collectionView.bounds.height
+        scroll(to: end)
+        wait(for: [asked], timeout: 1)
+        scroll(to: 0)
+        scroll(to: end)
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(requests.map(\.0), ["feed"])
+        XCTAssertEqual(requests.map(\.1), [.string("page2")])
+        XCTAssertEqual(footer(controller)?.spinner.isAnimating, true)
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAFailedLoadRetriesAndAnAppendWhoseEndStillShowsAsksForTheNextItems() throws {
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "row": { "type": "label", "text": "$title", "height": 40 } },
+          "sections": [ { "id": "feed", "more": "page2", "items": [ { "id": "a", "template": "row" } ] } ] }
+        """)
+        var requests: [JSONValue] = []
+        var asked = expectation(description: "asked for page 2")
+        controller.onLoadMore = { requests.append($1); asked.fulfill() }
+        wait(for: [asked], timeout: 1)
+
+        controller.showLoadMoreFailure(in: "feed")
+        let shown = try XCTUnwrap(footer(controller))
+        XCTAssertFalse(shown.retryButton.isHidden)
+        XCTAssertFalse(shown.spinner.isAnimating)
+        asked = expectation(description: "asked for page 2 again")
+        shown.retryButton.fire(.touchUpInside)
+        XCTAssertTrue(shown.retryButton.isHidden)
+        wait(for: [asked], timeout: 1)
+
+        // The footer still shows, and no cell comes into view to ask. (iOS 15
+        // shows the footer again in the next layout, which asks too.)
+        asked = expectation(description: "asked for page 3")
+        controller.apply(try patch("""
+        { "v": 1, "operations": [ { "op": "appendItems", "section": "feed", "items": [], "more": "page3" } ] }
+        """), animatingDifferences: false)
+        controller.view.layoutIfNeeded()
+        wait(for: [asked], timeout: 1)
+
+        controller.apply(try patch("""
+        { "v": 1, "operations": [ { "op": "appendItems", "section": "feed",
+          "items": [ { "id": "b", "template": "row" } ] } ] }
+        """), animatingDifferences: false)
+        controller.view.layoutIfNeeded()
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.05))
+
+        XCTAssertEqual(requests, [.string("page2"), .string("page2"), .string("page3")])
+        XCTAssertEqual(controller.collectionView.numberOfItems(inSection: 0), 2)
+        XCTAssertNil(footer(controller))
+        XCTAssertEqual(issues, [])
+    }
+
+    func testACarouselWithMoreAsksForItsNextItemsWithoutAFooter() throws {
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "card": { "type": "label", "width": 100, "height": 60 } },
+          "sections": [ { "id": "picks", "layout": "carousel", "more": "page2",
+            "items": [ { "id": "a", "template": "card" }, { "id": "b", "template": "card" } ] } ] }
+        """)
+        let asked = expectation(description: "asked for more")
+        controller.onLoadMore = { _, _ in asked.fulfill() }
+
+        wait(for: [asked], timeout: 1)
+        XCTAssertNil(footer(controller))
+    }
+
+    func testTheScrollViewDelegateGetsTheCollectionViewsScrollCallbacks() throws {
+        final class Recorder: NSObject, UIScrollViewDelegate {
+            var offsets: [CGFloat] = []
+            func scrollViewDidScroll(_ scrollView: UIScrollView) { offsets.append(scrollView.contentOffset.y) }
+        }
+        let items = (0..<30).map { #"{ "id": "\#($0)", "template": "row" }"# }
+        let controller = try show("""
+        { "v": 1, "templates": { "row": { "type": "label", "height": 40 } },
+          "sections": [ { "id": "s", "items": [ \(items.joined(separator: ",")) ] } ] }
+        """)
+        let recorder = Recorder()
+        controller.scrollViewDelegate = recorder
+
+        controller.collectionView.contentOffset.y = 100
+
+        XCTAssertEqual(recorder.offsets, [100])
+    }
 }
+
