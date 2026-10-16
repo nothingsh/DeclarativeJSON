@@ -14,10 +14,14 @@ extension ComponentSpec {
         ComponentSpec("vstack", properties: [
             "alignment": PropertySpec(horizontalAlignment),
             "spacing": PropertySpec(.number),
+            // Whether a stack with onTap is highlighted while pressed.
+            "highlight": PropertySpec(.bool),
         ], events: [.onTap], acceptsChildren: true),
         ComponentSpec("hstack", properties: [
             "alignment": PropertySpec(verticalAlignment),
             "spacing": PropertySpec(.number),
+            // Whether a stack with onTap is highlighted while pressed.
+            "highlight": PropertySpec(.bool),
         ], events: [.onTap], acceptsChildren: true),
         ComponentSpec("vscroll", properties: [
             "alignment": PropertySpec(horizontalAlignment),

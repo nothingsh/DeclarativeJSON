@@ -236,6 +236,10 @@
             "fill"
           ]
         },
+        "highlight" : {
+          "reference" : true,
+          "type" : "bool"
+        },
         "spacing" : {
           "reference" : true,
           "type" : "number"
@@ -504,6 +508,10 @@
             "trailing",
             "fill"
           ]
+        },
+        "highlight" : {
+          "reference" : true,
+          "type" : "bool"
         },
         "spacing" : {
           "reference" : true,

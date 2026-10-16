@@ -68,13 +68,61 @@ final class ActionTests: XCTestCase {
         { "type": "hstack", "accessibilityLabel": "Keyboard", "onTap": { "action": "toggle", "path": "opened" },
           "children": [ { "type": "label", "text": "Keyboard" } ] }
         """) as? UIStackView)
-        let tap = try XCTUnwrap(row.gestureRecognizers?.first as? RecordingTapRecognizer)
+        let tap = try XCTUnwrap(row.gestureRecognizers?.lazy.compactMap { $0 as? RecordingTapRecognizer }.first)
 
         tap.fire()
 
         XCTAssertEqual(data.value, ["opened": .bool(true)])
         XCTAssertTrue(row.isAccessibilityElement)
         XCTAssertTrue(row.accessibilityTraits.contains(.button))
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAStackWithOnTapIsHighlightedWhilePressedButNotThroughAControlOrANestedRow() async throws {
+        let row = try XCTUnwrap(try build("""
+        { "type": "vstack", "cornerRadius": 8, "onTap": { "action": "toggle", "path": "opened" }, "children": [
+          { "type": "label", "text": "Keyboard" },
+          { "type": "button", "title": "Buy", "onTap": { "action": "toggle", "path": "bought" } },
+          { "type": "hstack", "onTap": { "action": "toggle", "path": "more" }, "children": [ { "type": "label" } ] }
+        ]}
+        """) as? UIStackView)
+        let press = try XCTUnwrap(row.gestureRecognizers?.lazy.compactMap { $0 as? PressHighlight }.first)
+        let wait = { try await Task.sleep(nanoseconds: UInt64(PressHighlight.delay * 2 * 1_000_000_000)) }
+
+        XCTAssertTrue(row.subviews.first === press.highlight)
+        press.press()
+        XCTAssertEqual(press.highlight.alpha, 0)
+        try await wait()
+        XCTAssertEqual(press.highlight.alpha, 1)
+        XCTAssertEqual(press.highlight.layer.cornerRadius, 8)
+        press.release()
+        XCTAssertEqual(press.highlight.alpha, 0)
+
+        press.press()
+        press.cancel()
+        try await wait()
+        XCTAssertEqual(press.highlight.alpha, 0)
+
+        // A tap released before the delay stays highlighted for the delay.
+        press.press()
+        press.release()
+        XCTAssertEqual(press.highlight.alpha, 1)
+        try await wait()
+        XCTAssertEqual(press.highlight.alpha, 0)
+
+        let nested = try XCTUnwrap(row.arrangedSubviews[2] as? UIStackView)
+        XCTAssertTrue(press.highlights(touchesIn: row.arrangedSubviews[0]))
+        XCTAssertFalse(press.highlights(touchesIn: row.arrangedSubviews[1]))
+        XCTAssertFalse(press.highlights(touchesIn: nested.arrangedSubviews[0]))
+    }
+
+    func testHighlightFalseTurnsTheHighlightOff() throws {
+        let row = try build("""
+        { "type": "hstack", "highlight": false, "onTap": { "action": "toggle", "path": "opened" }, "children": [] }
+        """)
+        let press = try XCTUnwrap(row.gestureRecognizers?.lazy.compactMap { $0 as? PressHighlight }.first)
+
+        XCTAssertFalse(press.isEnabled)
         XCTAssertEqual(issues, [])
     }
 
