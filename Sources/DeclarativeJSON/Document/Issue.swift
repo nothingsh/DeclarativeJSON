@@ -39,10 +39,16 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
         /// An item or header whose template the document does not have. It is
         /// left out.
         case unknownTemplate(String)
+        /// A section or item `id` in a patch that the page does not have. What
+        /// refers to it is skipped.
+        case unknownID(String)
+        /// A patch operation this version does not know. It is skipped.
+        case unknownOperation(String)
     }
 
     public let kind: Kind
-    /// Where in the document, as in `templates.product.children[1]`.
+    /// Where in the document, as in `templates.product.children[1]`, or in
+    /// the patch, as in `operations[0].items[1]`.
     public let path: String
 
     public init(_ kind: Kind, at path: String) {
@@ -80,6 +86,10 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
             return "\(path).id: \"\(id)\" is already used in the page; left out"
         case .unknownTemplate(let name):
             return "\(path).template: no template \"\(name)\"; left out"
+        case .unknownID(let id):
+            return "\(path): the page has no \"\(id)\"; skipped"
+        case .unknownOperation(let name):
+            return "\(path): unknown operation \"\(name)\"; skipped"
         }
     }
 }

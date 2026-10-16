@@ -246,6 +246,27 @@ controller.setDocument(newDocument)
 
 `setDocument` shows a newer document. Sections and items are matched by `id` and animated, and the new document's data replaces the changes made on the device.
 
+To change part of the page, such as an item whose price changed, apply a patch:
+
+```json
+{ "v": 1,
+  "templates": { "notice": { "type": "label", "text": "$text", "padding": 12 } },
+  "operations": [
+    { "op": "replaceItems", "items": [ { "id": "p1", "template": "product", "data": { "title": "Keyboard", "price": "89.00" } } ] },
+    { "op": "insertItems", "section": "today", "after": "p1", "items": [ { "id": "n1", "template": "notice", "data": { "text": "Back in stock" } } ] },
+    { "op": "removeItems", "ids": ["p3"] }
+  ] }
+```
+
+```swift
+let patch = try DocumentDecoder().decodePatch(data)
+controller.apply(patch)
+```
+
+`replaceItems` and `replaceSections` replace the items and sections of the same `id`, in their place. `insertItems` inserts items into `section` after the item `after`, and `insertSections` inserts sections after the section `after`; without `after`, they go first. `removeItems` and `removeSections` remove those of the `ids`, a section with its items. `templates` is optional: it adds templates, and replaces those of the same name, whose cells are built again.
+
+The operations run in order, and the page animates them together. Replaced and inserted items and sections show the patch's data; unlike with `setDocument`, the other items keep the changes made on the device. A patch that refers to an `id` the page does not have, or inserts one it has, is applied without that item, section or operation. The library sends no requests: a patch comes from your own request, or from the response in an asynchronous action, applied with `context.page?.apply(patch)`. Releases before 0.4.0 do not apply patches.
+
 ## Your own components
 
 Register a type with what it accepts and how it builds its view:
@@ -286,9 +307,10 @@ A document fails to decode only when it is not JSON, has another version, or get
 - an unknown property or event, or a reference where only a constant is accepted, is ignored;
 - a value of the wrong type is treated as missing;
 - a node that is not an object with a `type`, an unknown or malformed action, a duplicate `id`, and an item or header with an unknown template are left out;
-- an unknown `layout` is a list.
+- an unknown `layout` is a list;
+- in a patch, an unknown operation, and an `id` the page does not have, or has already where the patch inserts it, are skipped.
 
-Each `Issue` says where it is, as in `templates.product.children[2]`.
+Each `Issue` says where it is, as in `templates.product.children[2]`, or `operations[1].items[0]` for a patch. The issues of a patch are reported each time it is applied.
 
 ## Versions
 
@@ -299,7 +321,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 0 | 0.1.0 | Version 1 |
 | 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
-| 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions |
+| 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
 
 Send it with your requests, so that the backend writes what the app reads:
 
@@ -315,7 +337,7 @@ A node can also carry a `fallback`, a node shown instead when the app does not k
 
 ## The manifest
 
-[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
+[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, the operations of a patch, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

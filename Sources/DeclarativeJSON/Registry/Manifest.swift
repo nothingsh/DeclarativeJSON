@@ -17,13 +17,15 @@ import Foundation
 ///   },
 ///   "actions": {
 ///     "navigate": { "async": false, "parameters": { "url": { "type": "url", "reference": true } } }
-///   }
+///   },
+///   "operations": ["insertItems", …]
 /// }
 /// ```
 ///
 /// `v` and `minor` are those of `DocumentVersion`. `common` lists the
 /// properties every component accepts besides its own. An action with
 /// `async` takes `onSuccess` and `onFailure` besides its parameters.
+/// `operations` lists the `op`s a patch can have.
 /// `reference` tells whether the value can be a `$` reference. A type is one
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
 /// `insets`, `oneOf` with its `values`, `object` with the type of each of
@@ -69,6 +71,7 @@ public struct Manifest {
             "common": Self.json(ComponentSpec.commonProperties),
             "components": .object(components),
             "actions": .object(actions),
+            "operations": .array(PatchOperationName.allCases.map(\.rawValue).sorted().map(JSONValue.string)),
         ])
     }
 
