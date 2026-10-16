@@ -301,4 +301,82 @@ final class BuildingTests: XCTestCase {
         XCTAssertTrue(components.specs.contains { $0.type == "rating" })
         XCTAssertEqual(issues, [])
     }
+
+    func testMarkdownShowsInTheLabelsFontAndColorInsteadOfTheText() throws {
+        data.send(["note": .string("**Now** ~~¥129~~ `code`")])
+        let label = try XCTUnwrap(try build("""
+        { "type": "label", "text": "Old releases", "markdown": "$note", "font": { "size": 15 }, "textColor": "secondaryLabel" }
+        """) as? UILabel)
+        let text = try XCTUnwrap(label.attributedText)
+        func attribute(_ key: NSAttributedString.Key, at index: Int) -> Any? {
+            text.attribute(key, at: index, effectiveRange: nil)
+        }
+
+        XCTAssertEqual(text.string, "Now ¥129 code")
+        let bold = try XCTUnwrap(attribute(.font, at: 0) as? UIFont)
+        XCTAssertEqual(bold.pointSize, 15)
+        XCTAssertTrue(bold.fontDescriptor.symbolicTraits.contains(.traitBold))
+        XCTAssertEqual(attribute(.foregroundColor, at: 0) as? UIColor, .secondaryLabel)
+        XCTAssertEqual(attribute(.strikethroughStyle, at: 4) as? Int, NSUnderlineStyle.single.rawValue)
+        let code = try XCTUnwrap(attribute(.font, at: 9) as? UIFont)
+        XCTAssertTrue(code.fontDescriptor.symbolicTraits.contains(.traitMonoSpace))
+        XCTAssertEqual(code.pointSize, 15)
+
+        // Without markdown, the label shows its text as a plain label does.
+        data.send([:])
+        XCTAssertEqual(label.text, "Old releases")
+        XCTAssertEqual(label.font.pointSize, 15)
+        XCTAssertFalse(label.font.fontDescriptor.symbolicTraits.contains(.traitBold))
+        XCTAssertEqual(issues, [])
+    }
+
+    /// The first and last rows of the label with ink in them, drawn at 1x.
+    private func inkRows(_ label: UILabel) -> ClosedRange<Int>? {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(bounds: label.bounds, format: format).image { label.layer.render(in: $0.cgContext) }
+        guard let cgImage = image.cgImage, let pixels = CFDataGetBytePtr(cgImage.dataProvider?.data) else { return nil }
+        let rows = (0..<cgImage.height).filter { y in
+            (0..<cgImage.width).contains { x in pixels[y * cgImage.bytesPerRow + x * 4 + 3] > 128 }
+        }
+        guard let first = rows.first, let last = rows.last else { return nil }
+        return first...last
+    }
+
+    func testALineHeightSetsEachLineAndCentersTheTextInIt() throws {
+        let label = try XCTUnwrap(try build(#"{ "type": "label", "text": "HHHH", "font": { "size": 20 }, "lineHeight": 40 }"#) as? UILabel)
+        label.frame.size = label.sizeThatFits(CGSize(width: 300, height: 1000))
+
+        XCTAssertEqual(label.frame.height, 40)
+        // The capitals of a 20-point system font, 23.9 points from the top of
+        // its ascender to the bottom of its descender, centered in 40 points:
+        // without the shift they are drawn 8 points lower, at the bottom.
+        let rows = try XCTUnwrap(inkRows(label))
+        XCTAssertEqual(Double(rows.lowerBound), 13, accuracy: 1)
+        XCTAssertEqual(Double(rows.upperBound), 26, accuracy: 1)
+        XCTAssertEqual(issues, [])
+    }
+
+    func testALineHeightGrowsWithTheTextSize() throws {
+        let label = try XCTUnwrap(try build(#"{ "type": "label", "text": "Hi", "lineHeight": 40 }"#) as? UILabel)
+        let child = UIViewController()
+        child.view.addSubview(label)
+        let parent = UIViewController()
+        parent.addChild(child)
+        parent.view.addSubview(child.view)
+        child.didMove(toParent: parent)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        window.rootViewController = parent
+        window.isHidden = false
+        defer { window.isHidden = true }
+
+        let larger = UITraitCollection(preferredContentSizeCategory: .accessibilityLarge)
+        parent.setOverrideTraitCollection(larger, forChild: child)
+        window.layoutIfNeeded()
+
+        let paragraph = label.attributedText?.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        XCTAssertEqual(paragraph?.minimumLineHeight, UIFontMetrics.default.scaledValue(for: 40, compatibleWith: larger))
+        XCTAssertGreaterThan(paragraph?.minimumLineHeight ?? 0, 40)
+    }
 }
+

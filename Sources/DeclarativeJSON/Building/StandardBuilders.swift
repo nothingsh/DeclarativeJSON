@@ -67,13 +67,17 @@ extension ComponentRegistry where View == UIView {
                 return Spacer(minLength: CGFloat(minLength ?? 0))
             },
             "label": { context in
-                UILabel()
+                TextLabel()
                     .configure { $0.adjustsFontForContentSizeCategory = true }
-                    .onValue(context.string("text")) { $0.text = $1 }
-                    .onValue(context.font("font")) { $0.font = $1 }
-                    .onValue(context.color("textColor")) { $0.textColor = $1 }
+                    .onValue(context.string("text")) { $0.plainText = $1 }
+                    // `markdown` wins over `text`, which shows in releases without it.
+                    .onValue(context.string("markdown")) { $0.markdown = $1 }
+                    .onValue(context.length("lineHeight")) { $0.lineHeight = $1 }
+                    // As written, to read again when the text size changes.
+                    .onValue(context.value("font", expected: .font) { UIFont.parse($0) == nil ? nil : $0 }) { $0.baseFont = $1 }
+                    .onValue(context.color("textColor")) { $0.baseColor = $1 }
                     .onValue(context.integer("numberOfLines")) { $0.numberOfLines = $1 ?? 1 }
-                    .onValue(context.choice("textAlignment", textAlignments)) { $0.textAlignment = $1 ?? .natural }
+                    .onValue(context.choice("textAlignment", textAlignments)) { $0.alignment = $1 ?? .natural }
                     .onValue(context.bool("adjustsFontSizeToFitWidth")) { $0.adjustsFontSizeToFitWidth = $1 ?? false }
             },
             "image": { context in

@@ -42,7 +42,7 @@ public extension BuildContext {
     /// `"size"` and an optional `"weight"` such as `"semibold"`, whose size is
     /// that at the default text size. Both follow Dynamic Type.
     func font(_ name: String) -> AnyPublisher<UIFont?, Never>? {
-        value(name, expected: .font, read: UIFont.parse)
+        value(name, expected: .font) { UIFont.parse($0) }
     }
 
     /// Insets: one length for every edge, or an object with any of `top`,
@@ -102,13 +102,15 @@ extension UIColor {
     ]
 }
 
-private extension UIFont {
+extension UIFont {
 
-    static func parse(_ json: JSONValue) -> UIFont? {
+    /// A font as written, at the text size of `traits`, or of the app
+    /// without them.
+    static func parse(_ json: JSONValue, compatibleWith traits: UITraitCollection? = nil) -> UIFont? {
         switch json {
         case .string(let name):
             guard let style = textStyles[name] else { return nil }
-            return .preferredFont(forTextStyle: style)
+            return .preferredFont(forTextStyle: style, compatibleWith: traits)
         case .object(let object):
             guard case .number(let size)? = object["size"], size.isFinite, size > 0 else { return nil }
             var weight = UIFont.Weight.regular
@@ -123,19 +125,19 @@ private extension UIFont {
             }
             guard Set(object.keys).isSubset(of: ["size", "weight"]) else { return nil }
             // Scaled as body text is, as an Android sp is.
-            return UIFontMetrics.default.scaledFont(for: .systemFont(ofSize: CGFloat(size), weight: weight))
+            return UIFontMetrics.default.scaledFont(for: .systemFont(ofSize: CGFloat(size), weight: weight), compatibleWith: traits)
         default:
             return nil
         }
     }
 
-    static let textStyles: [String: UIFont.TextStyle] = [
+    private static let textStyles: [String: UIFont.TextStyle] = [
         "largeTitle": .largeTitle, "title1": .title1, "title2": .title2, "title3": .title3,
         "headline": .headline, "subheadline": .subheadline, "body": .body, "callout": .callout,
         "footnote": .footnote, "caption1": .caption1, "caption2": .caption2,
     ]
 
-    static let weights: [String: UIFont.Weight] = [
+    private static let weights: [String: UIFont.Weight] = [
         "ultraLight": .ultraLight, "thin": .thin, "light": .light, "regular": .regular,
         "medium": .medium, "semibold": .semibold, "bold": .bold, "heavy": .heavy, "black": .black,
     ]

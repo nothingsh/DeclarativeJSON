@@ -10,6 +10,7 @@ Each file holds `{ "cases": [ … ] }`. A case has a `name`, which a failing tes
 | [`issues.json`](issues.json) | the issues of showing a document |
 | [`actions.json`](actions.json) | the item data and issues after events run their actions |
 | [`patches.json`](patches.json) | the sections and issues after patches are applied |
+| [`markdown.json`](markdown.json) | the runs of text, and their styles, of a label's `markdown` |
 
 The cases do not check how anything looks: fonts, system controls and colors differ between platforms on purpose.
 
@@ -68,6 +69,15 @@ The harness shows `document` so that every item and header is built with its own
 - Besides the built-in actions, the harness registers two asynchronous actions without parameters: `succeed`, which returns, and `fail`, which throws. They exist only in the cases.
 - `handlers` lists the built-in actions the app handles, out of `navigate` and `openURL`. Their handler records `{ "action": name, "url": resolved url }`, and `handed` is the list of what they recorded, in order. Without a handler they report `unhandledAction`.
 - `data` and `headers` give the whole data of the items and headers they name; the others are not checked. `issues` is the set reported while the steps ran, including those of reading the actions.
+
+## Markdown
+
+```json
+{ "name": "…", "markdown": "**Now ¥99** ~~¥129~~",
+  "runs": [ { "text": "Now ¥99", "styles": ["bold"] }, { "text": " " }, { "text": "¥129", "styles": ["strikethrough"] } ] }
+```
+
+The harness shows a `label` with the `markdown` and reads back its text in runs: neighbors of the same styles are one run, and `styles` is the set of `bold`, `italic`, `strikethrough` and `code`, none when left out.
 
 ## Patches
 

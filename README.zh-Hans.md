@@ -133,7 +133,7 @@ dependencies: [
 | `hstack` | `alignment`（`top`、`center`、`bottom`、`firstTextBaseline`、`lastTextBaseline`、`fill`）、`spacing`、`highlight` | `onTap` |
 | `vscroll`、`hscroll` | 与 `vstack`、`hstack` 相同的 `alignment` 和 `spacing`，另有 `showsIndicators`、`bounces` | |
 | `spacer` | `minLength`，只接受常量 | |
-| `label` | `text`、`font`、`textColor`、`numberOfLines`、`textAlignment`、`adjustsFontSizeToFitWidth` | |
+| `label` | `text`、`markdown`、`font`、`textColor`、`numberOfLines`、`textAlignment`、`lineHeight`、`adjustsFontSizeToFitWidth` | |
 | `image` | `url`、`image`、`contentMode`（`scaleToFill`、`scaleAspectFit`、`scaleAspectFill`、`center`） | |
 | `button` | `title`、`titleColor`、`image`、`isEnabled` | `onTap` |
 | `textfield` | `text`、`placeholder`、`font`、`textColor`、`textAlignment`、`keyboardType`、`returnKeyType`、`isSecureTextEntry`、`isEnabled` | `onChange`、`onReturn` |
@@ -154,6 +154,11 @@ dependencies: [
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
+- `label` 的 `markdown` 用行内 Markdown 代替 `text` 显示：`**粗体**`、`*斜体*`、`~~删除线~~` 和 `` `代码` ``，用 label 自己的字体与颜色。链接和图片只显示文字，不能点；标题、列表等块语法和换行按原样显示。为 0.6.0 之前的版本保留纯文本的 `text`，它们会忽略 `markdown`：
+  ```json
+  { "type": "label", "text": "Now ¥99, was ¥129", "markdown": "**Now ¥99** ~~¥129~~" }
+  ```
+- `label` 的 `lineHeight` 设定每行的高度，文字在行内垂直居中。它和字体一样随系统字号缩放。
 - `textfield` 带圆角边框。`label` 与 `textfield` 跟随动态字体。
 
 ## 取值
@@ -407,7 +412,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 2 | 0.3.0 | `overlay`；`grid` 布局；`vstack` 与 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；颜色 `systemMint`、`systemCyan`、`systemBrown` |
-| 5 | 0.6.0 | 条目的 `tracking` |
+| 5 | 0.6.0 | 条目的 `tracking`；`label` 的 `markdown` 与 `lineHeight` |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
