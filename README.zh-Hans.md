@@ -414,7 +414,7 @@ let manifest = try Manifest(components: components, actions: actions).encoded()
 
 ## 示例 App
 
-`Example/Example.xcodeproj` 是一个以本地 package 方式使用本库的 iOS App。用 Xcode 打开，在 iOS 模拟器上运行 `Example` scheme。每个画面，包括菜单，都是 `Example/Example/Documents` 里的一份 JSON 文档；`navigate` 到 `example://store` 会打开 `store.json`。`Pages.swift` 注册了 router、`openURL`、`addToCart` 与 `showProduct` 两个动作和一个 `rating` 组件。
+`Example/Example.xcodeproj` 是一个以本地 package 方式使用本库的 iOS App。用 Xcode 打开，在 iOS 模拟器上运行 `Example` scheme。每个画面，包括菜单，都是 `Example/Example/Documents` 里的一份 JSON 文档；`navigate` 到 `example://store` 会打开 `store.json`。`Pages.swift` 注册了 router、`openURL`、`addToCart` 与 `showProduct` 两个动作和一个 `rating` 组件。Feed 画面模拟从服务器加载、延迟一秒：显示加载中与失败视图，从 `more` 指名的 patch `feed-2.json`、`feed-3.json` 加载后续页，下拉时重新加载。
 
 <img src="docs/images/example-store.png" width="300" alt="商店画面"> <img src="docs/images/example-settings.png" width="300" alt="设置画面">
 
