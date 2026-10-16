@@ -137,8 +137,10 @@ public final class DocumentViewController: UIViewController {
     private var loadingMore: [String: LoadingMore] = [:]
     /// The items reported to `onImpression` for the current document.
     private var impressed: Set<String> = []
-    /// When each item that shows enough, and is not yet reported, started to.
-    private var shownSince: [String: Date] = [:]
+    /// When each item that shows enough, and is not yet reported, started
+    /// to, as system uptime: the clock `asyncAfter` keeps, which a change of
+    /// the device's time does not move.
+    private var shownSince: [String: TimeInterval] = [:]
     private var isImpressionUpdatePending = false
     /// How many times `makeLoadMoreView` was replaced, for the footers to
     /// tell whether their view is current.
@@ -568,7 +570,7 @@ public final class DocumentViewController: UIViewController {
             }
         }
 
-        let now = Date()
+        let now = ProcessInfo.processInfo.systemUptime
         shownSince = shownSince.filter { showing.contains($0.key) }
         for id in showing where shownSince[id] == nil {
             shownSince[id] = now
@@ -577,7 +579,9 @@ public final class DocumentViewController: UIViewController {
             }
         }
         // Sorted, so that items that showed together are reported in order.
-        let due = shownSince.filter { now.timeIntervalSince($0.value) >= impressionDuration }.keys.sorted {
+        // With a millisecond to spare for rounding, so that the check
+        // scheduled for an item finds it due.
+        let due = shownSince.filter { now - $0.value >= impressionDuration - 0.001 }.keys.sorted {
             (dataSource.indexPath(for: $0) ?? IndexPath()) < (dataSource.indexPath(for: $1) ?? IndexPath())
         }
         for id in due {

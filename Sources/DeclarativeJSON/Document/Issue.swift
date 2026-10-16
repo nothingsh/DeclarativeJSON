@@ -47,8 +47,8 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
         /// A `repeat` that is not a child of a `vstack`, an `hstack`, a
         /// `vscroll` or an `hscroll`. It is left out.
         case unexpectedRepeat
-        /// An action that cannot run where it is, such as `set` or `toggle`
-        /// in a `repeat`. It is left out.
+        /// `set` or `toggle` in the template of a `repeat`, which cannot
+        /// change an element's data. It is left out.
         case unsupportedAction(String)
     }
 
