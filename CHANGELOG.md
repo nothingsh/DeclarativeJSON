@@ -18,7 +18,6 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - `BuildContext.action(_:)` returns an `EventAction`, which takes the view that sent the event as `source`. Calling it as before, `action(value)`, and passing it to `onEvent` still compile; code that stores it as a `(JSONValue?) -> Void` closure has to store an `EventAction` instead.
-
 - Requires iOS 15, the earliest version Xcode 26 builds for and has simulators of. iOS 15 runs on every iPhone that runs iOS 14.
 
 ### Fixed
