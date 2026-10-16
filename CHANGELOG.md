@@ -10,6 +10,10 @@ All notable changes to this project are documented here. The format follows
 
 - `onTap` on `vstack` and `hstack`, so a whole row can be tapped. With an `accessibilityLabel`, VoiceOver reads the stack as one button.
 
+### Fixed
+
+- `ActionContext.update` called after the handler returned, such as when a request finishes, changes the item the action ran for. It used to change the item that the cell showed by then, and to undo the changes made to the item in between.
+
 ## [0.1.0] - 2026-10-16
 
 First release.

@@ -32,9 +32,14 @@ final class TemplateHost {
                 components: page.components,
                 actions: page.actions,
                 data: self.data,
-                update: { [weak self, weak page] data in
-                    guard let self, let key = self.key else { return }
-                    page?.update(data, for: key) { self.data.send(data) }
+                // The item shown when an action runs, which a change it makes
+                // later still goes to after this view shows another.
+                updater: { [weak self, weak page] in
+                    let key = self?.key
+                    return { [weak page] change in
+                        guard let key else { return nil }
+                        return page?.update(key, change)
+                    }
                 },
                 report: { [weak page] in page?.report($0) }
             )

@@ -6,8 +6,9 @@ import UIKit
 /// Builds the view of a template node once, binding its `$` properties to the
 /// item data, so that new data updates the view without building it again.
 ///
-/// `update` gets the data an action changed. The page keeps it and sends it
-/// into `data`; it must not hold the views strongly.
+/// `updater` returns the update of the item the views show, which an action
+/// takes when it runs (see `ActionRunner`); it must not hold the views
+/// strongly.
 @MainActor
 struct NodeBuilder {
     let components: ComponentRegistry<UIView>
@@ -19,13 +20,13 @@ struct NodeBuilder {
         components: ComponentRegistry<UIView>,
         actions: ActionRegistry,
         data: CurrentValueSubject<[String: JSONValue], Never>,
-        update: @escaping ([String: JSONValue]) -> Void,
+        updater: @escaping () -> DataUpdate,
         report: @escaping (Issue) -> Void
     ) {
         self.components = components
         self.data = data
         self.report = report
-        runner = ActionRunner(actions: actions, data: data, update: update, report: report)
+        runner = ActionRunner(actions: actions, data: data, updater: updater, report: report)
     }
 
     func build(_ node: Node, path: String) -> UIView {

@@ -102,12 +102,13 @@ public final class ActionContext {
     public let parameters: [String: JSONValue]
     /// The value the event carries, if any: a String, a Bool or a number.
     public let event: JSONValue?
-    /// The item's data, including the changes made by `update`.
+    /// The item's data when the action ran, and after each `update`, as the
+    /// page has it then.
     public private(set) var data: [String: JSONValue]
 
     private let written: Set<String>
     private let path: String
-    private let send: ([String: JSONValue]) -> Void
+    private let send: DataUpdate
     private let issue: (Issue) -> Void
 
     init(
@@ -115,7 +116,7 @@ public final class ActionContext {
         event: JSONValue?,
         data: [String: JSONValue],
         path: String,
-        send: @escaping ([String: JSONValue]) -> Void,
+        send: @escaping DataUpdate,
         report: @escaping (Issue) -> Void
     ) {
         parameters = action.parameters.compactMapValues { $0.resolve(in: data) }
@@ -135,9 +136,17 @@ public final class ActionContext {
 
     /// Changes the item's data. The page keeps the change and the item's
     /// views show it at once.
+    ///
+    /// It can be called after the action returned, after a request for
+    /// example. The change still goes to the item the action ran for, and
+    /// applies to the item's data as the page has it then; the page drops it
+    /// when it no longer has the item.
     public func update(_ change: (inout [String: JSONValue]) -> Void) {
-        change(&data)
-        send(data)
+        if let updated = send(change) {
+            data = updated
+        } else {
+            change(&data)
+        }
     }
 
     public func report(_ kind: Issue.Kind) {

@@ -18,9 +18,14 @@ final class ActionTests: XCTestCase {
             components: .standard,
             actions: actions,
             data: data,
-            update: { [unowned self] in
-                updates.append($0)
-                data.send($0)
+            updater: { [unowned self] in
+                { [unowned self] change in
+                    var changed = data.value
+                    change(&changed)
+                    updates.append(changed)
+                    data.send(changed)
+                    return changed
+                }
             },
             report: { [unowned self] in issues.append($0) }
         )

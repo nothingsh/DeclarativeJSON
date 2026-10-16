@@ -194,6 +194,17 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` reads parameters with `string`, `url`, `bool` and `number`, which report a value of the wrong type, or gives them all in `parameters`. `event` is the event's value, `data` the item's data, and `update { $0["key"] = … }` changes the data as `set` does.
 
+`update` also works after the handler returns, when a request finishes for example. The change goes to the item the action ran for, even when its cell shows another item by then, and applies to the item's data as it is at that time. When the page no longer has the item, after `setDocument` for example, nothing changes.
+
+```swift
+actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
+    Task {
+        let liked = await api.like(context.string("id"))
+        context.update { $0["liked"] = .bool(liked) }
+    }
+}
+```
+
 ## The page
 
 `DocumentViewController` shows a document in a collection view. Its `collectionView` is yours to configure, for example to add a refresh control.

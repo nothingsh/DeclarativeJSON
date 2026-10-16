@@ -12,26 +12,33 @@ public struct Action: Equatable, Sendable {
     }
 }
 
+/// Changes the data the page keeps for one item: applies the change to the
+/// item's data as the page has it, shows the result and returns it, or
+/// returns nil when the page no longer has the item.
+typealias DataUpdate = ((inout [String: JSONValue]) -> Void) -> [String: JSONValue]?
+
 /// Runs the actions of a template's events for one item.
 ///
-/// `data` holds the item's data, and `update` is called with the data an
-/// action changed; the page keeps the change and sends it into `data`.
+/// `data` holds the data of the item the views show. `updater` returns the
+/// update of that item; an action takes it when it runs, so that a change it
+/// makes later, after a request for example, goes to the same item even when
+/// the views show another one by then.
 @MainActor
 final class ActionRunner {
     private let actions: ActionRegistry
     private let data: CurrentValueSubject<[String: JSONValue], Never>
-    private let update: ([String: JSONValue]) -> Void
+    private let updater: () -> DataUpdate
     private let report: (Issue) -> Void
 
     init(
         actions: ActionRegistry,
         data: CurrentValueSubject<[String: JSONValue], Never>,
-        update: @escaping ([String: JSONValue]) -> Void,
+        updater: @escaping () -> DataUpdate,
         report: @escaping (Issue) -> Void
     ) {
         self.actions = actions
         self.data = data
-        self.update = update
+        self.updater = updater
         self.report = report
     }
 
@@ -47,7 +54,7 @@ final class ActionRunner {
         }
         let parsed = elements.compactMap { json, path in parse(json, path: path).map { ($0, path) } }
         // The views keep the runner through this closure. The runner holds no
-        // view, and `update` must not hold one strongly either.
+        // view, and `updater` must not hold one strongly either.
         return { event in
             for (action, path) in parsed {
                 self.run(action, event: event, path: path)
@@ -82,7 +89,7 @@ final class ActionRunner {
         // Looked up when it runs, with the data as the previous action left it.
         guard let perform = actions.action(action.name)?.perform else { return }
         perform(ActionContext(
-            action: action, event: event, data: data.value, path: path, send: update, report: report
+            action: action, event: event, data: data.value, path: path, send: updater(), report: report
         ))
     }
 }
