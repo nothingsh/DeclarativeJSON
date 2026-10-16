@@ -124,6 +124,9 @@ final class BuildingTests: XCTestCase {
         }
 
         XCTAssertEqual(try label(#""textColor": "secondaryLabel""#).textColor, .secondaryLabel)
+        XCTAssertEqual(try label(#""textColor": "systemCyan""#).textColor, .systemCyan)
+        XCTAssertEqual(try label(#""textColor": "systemMint""#).textColor, .systemMint)
+        XCTAssertEqual(try label(#""textColor": "systemBrown""#).textColor, .systemBrown)
         XCTAssertEqual(try label(##""textColor": "#FF000080""##).textColor, UIColor(red: 1, green: 0, blue: 0, alpha: 128 / 255))
         let adaptive = try label(##""textColor": { "light": "#000000", "dark": "white" }"##).textColor
         XCTAssertEqual(adaptive?.resolvedColor(with: light), UIColor(red: 0, green: 0, blue: 0, alpha: 1))

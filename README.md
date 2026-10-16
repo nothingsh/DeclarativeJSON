@@ -390,7 +390,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
 | 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
-| 4 | 0.5.0 | `more` on a section; `appendItems` |
+| 4 | 0.5.0 | `more` on a section; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
 
 Send it with your requests, so that the backend writes what the app reads:
 

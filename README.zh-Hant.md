@@ -390,7 +390,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 版面；`vstack` 與 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure`；patch |
-| 4 | 0.5.0 | section 的 `more`；`appendItems` |
+| 4 | 0.5.0 | section 的 `more`；`appendItems`；顏色 `systemMint`、`systemCyan`、`systemBrown` |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 
