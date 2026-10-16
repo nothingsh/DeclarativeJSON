@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-16
+
 ### Added
 
 - Asynchronous actions: `ActionRegistry.register` with an `async throws` handler, such as one that sends a request. Such an action takes `onSuccess` and `onFailure`, which run when the handler returns or throws, and the actions after it wait until it is done. The actions after a wait read and change the item the action ran for, and do not run when the page no longer has it. The task is cancelled when the page goes away.
@@ -68,7 +70,8 @@ First release.
 - `manifest.json` and `Manifest`, describing the components and actions for a backend.
 - Example app.
 
-[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/nothingsh/DeclarativeJSON/releases/tag/0.1.0
