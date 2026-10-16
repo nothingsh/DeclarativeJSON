@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "templates": {
+    "note": {
+      "type": "label", "text": "$text", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 0,
+      "padding": { "horizontal": 20, "top": 8, "bottom": 16 }
+    }
+  },
+  "sections": [
+    {
+      "id": "nothing",
+      "header": { "template": "note", "data": { "text": "This page has a header but no items, so it shows its empty view." } },
+      "items": []
+    }
+  ]
+}

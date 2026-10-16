@@ -9,19 +9,26 @@
 /* Begin PBXBuildFile section */
 		115DC692C3DF04C91FAD2EAF /* store.json in Resources */ = {isa = PBXBuildFile; fileRef = 744C348223375F375AA5E98D /* store.json */; };
 		1B28369724B818E2686EC95B /* Pages.swift in Sources */ = {isa = PBXBuildFile; fileRef = D01426F365EF79515A5359C0 /* Pages.swift */; };
+		1C8109D9DB4C2EA832A57936 /* feed-2.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B1094BC4DF9D475DBEB9954 /* feed-2.json */; };
+		1F37334F84D6FE81189A9CB6 /* feed.json in Resources */ = {isa = PBXBuildFile; fileRef = E2DE00EBE13AF44A1CE3854F /* feed.json */; };
 		41C43241AE1620FC8A0606FF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A263B39369367A3901B6B7C0 /* AppDelegate.swift */; };
 		715BC75D1EED3E4A51F7B469 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B0C7D7CDCC3AB7C99E21F032 /* LaunchScreen.storyboard */; };
 		7701BC3A4BF43C0C83767FA6 /* home.json in Resources */ = {isa = PBXBuildFile; fileRef = AAD4314605B54F6B3E6F021F /* home.json */; };
 		85832E9EB068A8B91FE8D8CF /* DeclarativeJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 87C94F4451F68BDF4C3BA627 /* DeclarativeJSON */; };
+		A061666CC92389A844878809 /* feed-3.json in Resources */ = {isa = PBXBuildFile; fileRef = 7AE7AA5B9F70106BEA7FDF8C /* feed-3.json */; };
 		AC88DDA5C7A1AF78D816D392 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67979B086750BD69A85512EA /* SceneDelegate.swift */; };
 		B7A3CB3AB7A5D5ABB4544260 /* Rating.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F8F66B625F5A3B4CA94B9F4 /* Rating.swift */; };
 		C4C96A3E4E1C75F40A9E1B8C /* settings.json in Resources */ = {isa = PBXBuildFile; fileRef = 899DCD55B65D9D32B5EB434A /* settings.json */; };
+		F215AF5B521AFF98BB805C15 /* empty.json in Resources */ = {isa = PBXBuildFile; fileRef = 2AFAF6620BF0A2BEC1DEBC4C /* empty.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2AFAF6620BF0A2BEC1DEBC4C /* empty.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = empty.json; sourceTree = "<group>"; };
+		4B1094BC4DF9D475DBEB9954 /* feed-2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "feed-2.json"; sourceTree = "<group>"; };
 		5F8F66B625F5A3B4CA94B9F4 /* Rating.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rating.swift; sourceTree = "<group>"; };
 		67979B086750BD69A85512EA /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		744C348223375F375AA5E98D /* store.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = store.json; sourceTree = "<group>"; };
+		7AE7AA5B9F70106BEA7FDF8C /* feed-3.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "feed-3.json"; sourceTree = "<group>"; };
 		899DCD55B65D9D32B5EB434A /* settings.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = settings.json; sourceTree = "<group>"; };
 		A263B39369367A3901B6B7C0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A70CCE019BA3AE518E7FE7F3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -29,6 +36,7 @@
 		B0C7D7CDCC3AB7C99E21F032 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B1347D1D438B785B3C944687 /* DeclarativeJSON */ = {isa = PBXFileReference; lastKnownFileType = folder; name = DeclarativeJSON; path = ..; sourceTree = SOURCE_ROOT; };
 		D01426F365EF79515A5359C0 /* Pages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pages.swift; sourceTree = "<group>"; };
+		E2DE00EBE13AF44A1CE3854F /* feed.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = feed.json; sourceTree = "<group>"; };
 		F6FE7BF0248FC2FF22A10D63 /* Example.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -86,6 +94,10 @@
 		BB55ED057FAC66F631CABBC7 /* Documents */ = {
 			isa = PBXGroup;
 			children = (
+				2AFAF6620BF0A2BEC1DEBC4C /* empty.json */,
+				4B1094BC4DF9D475DBEB9954 /* feed-2.json */,
+				7AE7AA5B9F70106BEA7FDF8C /* feed-3.json */,
+				E2DE00EBE13AF44A1CE3854F /* feed.json */,
 				AAD4314605B54F6B3E6F021F /* home.json */,
 				899DCD55B65D9D32B5EB434A /* settings.json */,
 				744C348223375F375AA5E98D /* store.json */,
@@ -155,6 +167,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				715BC75D1EED3E4A51F7B469 /* LaunchScreen.storyboard in Resources */,
+				F215AF5B521AFF98BB805C15 /* empty.json in Resources */,
+				1C8109D9DB4C2EA832A57936 /* feed-2.json in Resources */,
+				A061666CC92389A844878809 /* feed-3.json in Resources */,
+				1F37334F84D6FE81189A9CB6 /* feed.json in Resources */,
 				7701BC3A4BF43C0C83767FA6 /* home.json in Resources */,
 				C4C96A3E4E1C75F40A9E1B8C /* settings.json in Resources */,
 				115DC692C3DF04C91FAD2EAF /* store.json in Resources */,

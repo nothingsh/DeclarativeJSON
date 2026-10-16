@@ -414,7 +414,7 @@ let manifest = try Manifest(components: components, actions: actions).encoded()
 
 ## 範例 App
 
-`Example/Example.xcodeproj` 是一個以本機 package 方式使用本函式庫的 iOS App。用 Xcode 開啟，在 iOS 模擬器上執行 `Example` scheme。每個畫面，包括選單，都是 `Example/Example/Documents` 裡的一份 JSON 文件；`navigate` 到 `example://store` 會開啟 `store.json`。`Pages.swift` 註冊了 router、`openURL`、`addToCart` 與 `showProduct` 兩個動作和一個 `rating` 元件。
+`Example/Example.xcodeproj` 是一個以本機 package 方式使用本函式庫的 iOS App。用 Xcode 開啟，在 iOS 模擬器上執行 `Example` scheme。每個畫面，包括選單，都是 `Example/Example/Documents` 裡的一份 JSON 文件；`navigate` 到 `example://store` 會開啟 `store.json`。`Pages.swift` 註冊了 router、`openURL`、`addToCart` 與 `showProduct` 兩個動作和一個 `rating` 元件。Feed 畫面模擬從伺服器載入、延遲一秒：顯示載入中與失敗視圖，從 `more` 指名的 patch `feed-2.json`、`feed-3.json` 載入後續頁，下拉時重新載入。
 
 <img src="docs/images/example-store.png" width="300" alt="商店畫面"> <img src="docs/images/example-settings.png" width="300" alt="設定畫面">
 

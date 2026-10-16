@@ -30,6 +30,14 @@
         { "id": "settings", "template": "entry", "data": {
           "icon": "gearshape", "title": "Settings", "url": "example://settings",
           "detail": "A text field, a switch and a slider that write into the item's data, and views that follow it."
+        }},
+        { "id": "feed", "template": "entry", "data": {
+          "icon": "list.bullet.rectangle", "title": "Feed", "url": "example://feed",
+          "detail": "A page that loads, fails and tries again, loads more posts as you scroll, and refreshes when pulled down."
+        }},
+        { "id": "empty", "template": "entry", "data": {
+          "icon": "tray", "title": "Empty", "url": "example://empty",
+          "detail": "A page without items, which shows its empty view."
         }}
       ]
     }

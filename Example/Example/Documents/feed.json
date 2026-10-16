@@ -1,0 +1,37 @@
+{
+  "v": 1,
+  "templates": {
+    "note": {
+      "type": "label", "text": "$text", "font": "footnote", "textColor": "secondaryLabel", "numberOfLines": 0,
+      "padding": { "horizontal": 20, "top": 8, "bottom": 16 }
+    },
+    "post": {
+      "type": "hstack", "spacing": 14, "alignment": "center", "padding": { "horizontal": 20, "vertical": 12 },
+      "children": [
+        { "type": "image", "image": "$symbol", "tintColor": "$tint", "contentMode": "scaleAspectFit", "width": 32, "height": 32 },
+        { "type": "vstack", "alignment": "leading", "spacing": 2, "children": [
+          { "type": "label", "text": "$title", "font": "headline" },
+          { "type": "label", "text": "$detail", "font": "subheadline", "textColor": "secondaryLabel", "numberOfLines": 0 }
+        ]}
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "posts", "more": "feed-2",
+      "header": { "template": "note", "data": { "text": "The feed loads its pages as patches, each a second late as from a server. The first load of the page and of page 3 fail, to show the retry buttons." } },
+      "items": [
+        { "id": "post1", "template": "post", "data": { "symbol": "sun.max", "tint": "systemOrange", "title": "Post 1", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post2", "template": "post", "data": { "symbol": "cloud.rain", "tint": "systemBlue", "title": "Post 2", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post3", "template": "post", "data": { "symbol": "leaf", "tint": "systemGreen", "title": "Post 3", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post4", "template": "post", "data": { "symbol": "flame", "tint": "systemRed", "title": "Post 4", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post5", "template": "post", "data": { "symbol": "drop", "tint": "systemTeal", "title": "Post 5", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post6", "template": "post", "data": { "symbol": "bolt", "tint": "systemYellow", "title": "Post 6", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post7", "template": "post", "data": { "symbol": "snowflake", "tint": "systemPink", "title": "Post 7", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post8", "template": "post", "data": { "symbol": "moon.stars", "tint": "systemIndigo", "title": "Post 8", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post9", "template": "post", "data": { "symbol": "wind", "tint": "systemGray", "title": "Post 9", "detail": "From page 1 of 3. Pull down to load the feed again." } },
+        { "id": "post10", "template": "post", "data": { "symbol": "tornado", "tint": "systemPurple", "title": "Post 10", "detail": "From page 1 of 3. Pull down to load the feed again." } }
+      ]
+    }
+  ]
+}
