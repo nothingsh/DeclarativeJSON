@@ -3,6 +3,7 @@ import UIKit
 /// The views a page shows in place of its sections by default: a spinner
 /// while it loads, a message with a button that tries again when loading
 /// failed, and a message when it has no items.
+@MainActor
 enum PageStateViews {
     static func loading() -> UIView {
         let spinner = UIActivityIndicatorView(style: .large)
