@@ -80,7 +80,7 @@ controller.onIssue = { print($0) }
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.6.0"))
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.7.0"))
 ]
 ```
 

@@ -80,7 +80,7 @@ Swift Package Manager。在 `Package.swift` 裡：
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.6.0"))
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.7.0"))
 ]
 ```
 

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-16
+
 ### Added
 
 - Themes: `Theme` holds the colors, fonts and images that documents name, and `DocumentViewController` takes one. `Theme.standard` has the system colors and text styles as before; an app can replace them and add names of its own. A font in a theme is a `Theme.Font`, which follows Dynamic Type.
@@ -121,7 +123,8 @@ First release.
 - `manifest.json` and `Manifest`, describing the components and actions for a backend.
 - Example app.
 
-[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.3.0...0.4.0
