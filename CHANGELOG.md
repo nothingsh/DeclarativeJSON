@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Themes: `Theme` holds the colors, fonts and images that documents name, and `DocumentViewController` takes one. `Theme.standard` has the system colors and text styles as before; an app can replace them and add names of its own. A font in a theme is a `Theme.Font`, which follows Dynamic Type.
+- Image names are looked up in the theme first, then in the asset catalog and among the SF Symbols as before.
+- `BuildContext.theme`, and `BuildContext.image(_:)`, which reads an image name as the built-in components do.
+- `colors`, `fonts` and `images` in the manifest: the names of the theme. `Manifest(components:actions:theme:)` lists those of an app's theme.
+
+### Changed
+
+- An image name that is not found is reported as `unknownImage`; it was ignored. `Issue.Kind` has the case `unknownImage`, which a `switch` over it has to handle.
+
 ## [0.6.0] - 2026-10-16
 
 ### Added

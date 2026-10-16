@@ -42,6 +42,7 @@ final class TemplateHost {
             built?.view.removeFromSuperview()
             let builder = NodeBuilder(
                 components: page.components,
+                theme: page.theme,
                 actions: page.actions,
                 data: self.data,
                 // The item shown when an action runs, which a change it makes

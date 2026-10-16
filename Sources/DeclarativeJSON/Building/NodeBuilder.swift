@@ -83,6 +83,7 @@ private final class Repeated {
 @MainActor
 struct NodeBuilder {
     let components: ComponentRegistry<UIView>
+    let theme: Theme
     let data: CurrentValueSubject<[String: JSONValue], Never>
     let report: (Issue) -> Void
     private let actions: ActionRegistry
@@ -95,6 +96,7 @@ struct NodeBuilder {
 
     init(
         components: ComponentRegistry<UIView>,
+        theme: Theme = .standard,
         actions: ActionRegistry,
         data: CurrentValueSubject<[String: JSONValue], Never>,
         target: @escaping () -> ActionTarget?,
@@ -102,6 +104,7 @@ struct NodeBuilder {
         inRepeat: Bool = false
     ) {
         self.components = components
+        self.theme = theme
         self.data = data
         self.report = report
         self.actions = actions
@@ -152,6 +155,7 @@ struct NodeBuilder {
             children: children,
             path: path,
             data: data.eraseToAnyPublisher(),
+            theme: theme,
             runner: runner,
             report: report
         )
@@ -247,6 +251,7 @@ struct NodeBuilder {
     ) -> UIView {
         let builder = NodeBuilder(
             components: components,
+            theme: theme,
             actions: actions,
             data: data,
             target: { [target] in
@@ -385,9 +390,10 @@ private extension BuildContext {
     /// `{"color": ..., "width": ...}`, as for `border(color:width:)`.
     func border(_ name: String) -> AnyPublisher<(color: UIColor, width: CGFloat)?, Never>? {
         guard case .object(let fields)? = ComponentSpec.commonProperties[name]?.type else { return nil }
+        let theme = theme
         return value(name, expected: .object(fields)) { json in
             guard case .object(let object) = json, object.count == 2,
-                  let color = object["color"].flatMap(UIColor.parse),
+                  let color = object["color"].flatMap(theme.color(_:)),
                   case .number(let width)? = object["width"], width.isFinite, width >= 0 else { return nil }
             return (color, CGFloat(width))
         }

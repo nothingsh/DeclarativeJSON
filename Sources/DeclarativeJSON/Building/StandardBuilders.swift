@@ -74,7 +74,7 @@ extension ComponentRegistry where View == UIView {
                     .onValue(context.string("markdown")) { $0.markdown = $1 }
                     .onValue(context.length("lineHeight")) { $0.lineHeight = $1 }
                     // As written, to read again when the text size changes.
-                    .onValue(context.value("font", expected: .font) { UIFont.parse($0) == nil ? nil : $0 }) { $0.baseFont = $1 }
+                    .onValue(context.themeFont("font")) { $0.baseFont = $1 }
                     .onValue(context.color("textColor")) { $0.baseColor = $1 }
                     .onValue(context.integer("numberOfLines")) { $0.numberOfLines = $1 ?? 1 }
                     .onValue(context.choice("textAlignment", textAlignments)) { $0.alignment = $1 ?? .natural }
@@ -86,7 +86,7 @@ extension ComponentRegistry where View == UIView {
                         "scaleToFill": UIView.ContentMode.scaleToFill, "scaleAspectFit": .scaleAspectFit,
                         "scaleAspectFill": .scaleAspectFill, "center": .center,
                     ])) { $0.contentMode = $1 ?? .scaleToFill }
-                let name = context.string("image")
+                let name = context.image("image")
                 let url = context.url("url")
                 guard name != nil || url != nil else { return imageView }
                 // The named image shows until the URL's image arrives, and
@@ -99,7 +99,7 @@ extension ComponentRegistry where View == UIView {
                 return imageView.onValue(images.eraseToAnyPublisher()) { view, images in
                     load.generation += 1
                     load.token = nil
-                    view.image = images.0.flatMap(namedImage)
+                    view.image = images.0
                     guard let url = images.1 else { return }
                     let generation = load.generation
                     load.token = imageLoader.load(url) { [weak view] image in
@@ -112,7 +112,7 @@ extension ComponentRegistry where View == UIView {
                 UIButton(type: .system)
                     .onValue(context.string("title")) { $0.title($1) }
                     .onValue(context.color("titleColor")) { $0.titleColor($1) }
-                    .onValue(context.string("image")) { $0.image($1.flatMap(namedImage)) }
+                    .onValue(context.image("image")) { $0.image($1) }
                     .onValue(context.bool("isEnabled")) { $0.isEnabled = $1 ?? true }
                     .onEvent(context.action(.onTap), \.tapPublisher)
             },
@@ -209,8 +209,3 @@ private extension UIStackView {
 /// action they can send, which a test process without touches cannot.
 @MainActor
 var makeTapRecognizer: () -> UITapGestureRecognizer = { UITapGestureRecognizer() }
-
-/// An image in the app's asset catalog, or else an SF Symbol.
-private func namedImage(_ name: String) -> UIImage? {
-    UIImage(named: name) ?? UIImage(systemName: name)
-}

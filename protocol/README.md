@@ -135,16 +135,20 @@ A **length**, such as `width` or `spacing`, is a `number` that is not negative. 
 
 A **color** is one of:
 
-- A name. The names follow the iOS system colors: `label`, `secondaryLabel`, `tertiaryLabel`, `quaternaryLabel`, `placeholderText`, `link`, `separator`, `opaqueSeparator`; `systemBackground`, `secondarySystemBackground`, `tertiarySystemBackground`, `systemGroupedBackground`, `secondarySystemGroupedBackground`, `tertiarySystemGroupedBackground`; `systemFill`, `secondarySystemFill`, `tertiarySystemFill`, `quaternarySystemFill`; `systemRed`, `systemOrange`, `systemYellow`, `systemGreen`, `systemMint`, `systemTeal`, `systemCyan`, `systemBlue`, `systemIndigo`, `systemPurple`, `systemPink`, `systemBrown`; `systemGray` to `systemGray6`; `clear`, `black`, `white`. They mean roles, such as "secondary text", and follow light and dark mode. On Android they will map to the app's Material 3 color scheme where Material has the role, and otherwise take the iOS values.
+- A name in the app's **theme**. The standard theme has the iOS system colors: `label`, `secondaryLabel`, `tertiaryLabel`, `quaternaryLabel`, `placeholderText`, `link`, `separator`, `opaqueSeparator`; `systemBackground`, `secondarySystemBackground`, `tertiarySystemBackground`, `systemGroupedBackground`, `secondarySystemGroupedBackground`, `tertiarySystemGroupedBackground`; `systemFill`, `secondarySystemFill`, `tertiarySystemFill`, `quaternarySystemFill`; `systemRed`, `systemOrange`, `systemYellow`, `systemGreen`, `systemMint`, `systemTeal`, `systemCyan`, `systemBlue`, `systemIndigo`, `systemPurple`, `systemPink`, `systemBrown`; `systemGray` to `systemGray6`; `clear`, `black`, `white`. They mean roles, such as "secondary text", and follow light and dark mode. On Android they will map to the app's Material 3 color scheme where Material has the role, and otherwise take the iOS values. An app can replace these and add names of its own, such as `brand.primary`.
 - `#RRGGBB` or `#RRGGBBAA`, in hexadecimal.
 - `{ "light": color, "dark": color }`, each a name or a hexadecimal color.
 
 A **font** is one of:
 
-- A text style: `largeTitle`, `title1`, `title2`, `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1`, `caption2`. On Android they will map to the app's Material 3 typography.
+- A name in the app's theme. The standard theme has the text styles `largeTitle`, `title1`, `title2`, `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1`, `caption2`. On Android they will map to the app's Material 3 typography. An app can replace these and add names of its own, such as `price`.
 - `{ "size": number, "weight": weight }`, with `size` greater than 0, in points or sp, and an optional weight: `ultraLight`, `thin`, `light`, `regular` (the default), `medium`, `semibold`, `bold`, `heavy`, `black`, from 100 to 900.
 
 Both kinds grow and shrink with the user's text size; `size` is the size at the default text size.
+
+An **image name**, the `image` of `image` and `button`, is a name in the app's theme. The standard theme has no images, so the apps on each platform register the same names for their own images. On iOS, a name the theme does not have is looked up in the app's assets, then among the SF Symbols, which documents written for iOS alone may rely on. A name that is not found shows no image and is reported as `unknownImage`.
+
+The manifest lists the theme's names of colors, fonts and images.
 
 **Insets**, for `padding`, are a length for every edge, or an object with any of `top`, `leading`, `bottom`, `trailing`, `horizontal` and `vertical`. An edge wins over its axis, and edges not given are 0. `leading` and `trailing` follow the layout direction.
 
@@ -173,7 +177,7 @@ A renderer has these components. An app can register more, which its manifest li
 - `label` shows at most `numberOfLines` lines, 0 for no limit, and ends the last one with an ellipsis when the text does not fit.
 - `markdown` on a `label` is shown instead of `text`, which a renderer of an earlier minor version shows instead. It is inline Markdown as CommonMark with the GitHub strikethrough reads it: `*` or `_` for italic, `**` or `__` for bold, `~~` or `~` for strikethrough, `` ` `` for code, which is monospaced and not parsed further, and `\` to escape a marker. HTML entities are decoded. A link or an image shows its text, and cannot be tapped. Everything else stays as written: headings, lists, quotes and other block syntax, line breaks and spaces, HTML tags and bare URLs. The text takes the label's font and color; bold and italic are those of its font, and code a monospaced font of its size. The [shared cases](cases/markdown.json) pin the edge cases.
 - `lineHeight` on a `label` is the height of every line, a length, with the text centered in it. It grows with the text size, as fonts do.
-- `image` shows the image at `url`, downloaded by the app's image loader, and `image`, the name of an image the app has, until the URL's image has loaded. On iOS, a name is looked up in the app's assets, then among the SF Symbols; names will become tokens that each platform maps, since Android has no SF Symbols.
+- `image` shows the image at `url`, downloaded by the app's image loader, and `image`, an [image name](#values), until the URL's image has loaded.
 - `button` is a borderless system button with a title, an image, or both.
 - `textfield` has a rounded border; `isSecureTextEntry` hides what is typed.
 - The names are those of the iOS properties they set. A renderer on another platform keeps the names and translates them:
@@ -361,6 +365,7 @@ Problems that do not stop the page are **issues**: the part at fault is left out
 | `unknownOperation` | a patch `op` the renderer does not know | skipped |
 | `unexpectedRepeat` | a `repeat` that is not a child of a stack | left out |
 | `unsupportedAction` | `set` or `toggle` in a `repeat` | left out |
+| `unknownImage` | an image name the app does not have | no image |
 
 An issue says where it is with a [path](#nodes): the node, as in `templates.product.children[2]`; the action, as in `templates.product.onTap[1]`; the section or item, as in `sections[0].items[3]`; or the place in a patch. The shared cases write an issue as JSON, such as `{ "kind": "unknownType", "type": "card", "at": "templates.product.children[0]" }`; see [their format](cases/README.md#issues).
 
@@ -383,4 +388,4 @@ An app keeps the release of the renderer it was built with for a long time, so a
 
 ## The manifest
 
-A renderer exports a manifest: every component with its properties and events, the properties every component takes, every action with its parameters and whether it is asynchronous, the operations of a patch, the properties of `repeat`, and `v` and `minor`. Each property has its [type](#values) and whether it takes a reference. The manifest of the iOS library's built-in components and actions is [`manifest.json`](../manifest.json); an app with components or actions of its own exports its own. A backend reads it to check the documents it writes. When the Android renderer comes, each platform will have its manifest, and the difference between them is what the platforms do not yet share.
+A renderer exports a manifest: every component with its properties and events, the properties every component takes, every action with its parameters and whether it is asynchronous, the operations of a patch, the properties of `repeat`, the names of colors, fonts and images in the theme, and `v` and `minor`. Each property has its [type](#values) and whether it takes a reference. The manifest of the iOS library's built-in components and actions is [`manifest.json`](../manifest.json); an app with components, actions or a theme of its own exports its own. A backend reads it to check the documents it writes. When the Android renderer comes, each platform will have its manifest, and the difference between them is what the platforms do not yet share.

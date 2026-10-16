@@ -53,6 +53,8 @@ private enum PageState {
 public final class DocumentViewController: UIViewController {
     public let components: ComponentRegistry<UIView>
     public let actions: ActionRegistry
+    /// The colors, fonts and images that the document names.
+    public let theme: Theme
     public private(set) var document: Document
 
     /// Called once with each distinct problem in the current document, when
@@ -158,11 +160,13 @@ public final class DocumentViewController: UIViewController {
     public init(
         document: Document? = nil,
         components: ComponentRegistry<UIView> = .standard,
-        actions: ActionRegistry = .standard
+        actions: ActionRegistry = .standard,
+        theme: Theme = .standard
     ) {
         self.document = document ?? Document(templates: [:], sections: [], issues: [])
         self.components = components
         self.actions = actions
+        self.theme = theme
         super.init(nibName: nil, bundle: nil)
         failureView = PageStateViews.failure { [weak self] in self?.retry() }
         isInBackground = { [weak self] in self?.viewIfLoaded?.window?.windowScene?.activationState == .background }
