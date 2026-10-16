@@ -90,7 +90,7 @@ A document has three keys:
 
 - `v`, the version of the format. This release reads version 1; a document of another version fails to decode with `DocumentError.unsupportedVersion`. [Versions](#versions) lists what later releases add to version 1.
 - `templates`, from a name to the view tree of a cell or a header.
-- `sections`, in order. A section has an `id`, a `layout`, an optional `header` and its `items`.
+- `sections`, in order. A section has an `id`, a `layout`, an optional `header`, its `items` and, when it has more to [load](#loading-more), `more`.
 
 ```json
 { "id": "featured", "layout": "carousel",
@@ -236,7 +236,7 @@ Other actions report `onSuccess` and `onFailure` as unknown properties, and so d
 
 ## The page
 
-`DocumentViewController` shows a document in a collection view. Its `collectionView` is yours to configure, for example to add a refresh control.
+`DocumentViewController` shows a document in a collection view. The page is the collection view's delegate and data source; the rest of `collectionView` is yours to configure, for example to add a refresh control. Set `scrollViewDelegate` to get the scroll view's callbacks.
 
 Each cell builds its template's views the first time it is shown and keeps them; showing another item only sends that item's data to the bindings. `set` and `toggle` change the page's copy of the item's data, so the change stays when the cell scrolls away and back, and the cell resizes to its new content.
 
@@ -266,6 +266,35 @@ controller.apply(patch)
 `replaceItems` and `replaceSections` replace the items and sections of the same `id`, in their place. `insertItems` inserts items into `section` after the item `after`, and `insertSections` inserts sections after the section `after`; without `after`, they go first. `removeItems` and `removeSections` remove those of the `ids`, a section with its items. `templates` is optional: it adds templates, and replaces those of the same name, whose cells are built again.
 
 The operations run in order, and the page animates them together. Replaced and inserted items and sections show the patch's data; unlike with `setDocument`, the other items keep the changes made on the device. A patch that refers to an `id` the page does not have, or inserts one it has, is applied without that item, section or operation. The library sends no requests: a patch comes from your own request, or from the response in an asynchronous action, applied with `context.page?.apply(patch)`. Releases before 0.4.0 do not apply patches.
+
+### Loading more
+
+A section with more items than the document carries says so with `more`, whatever the backend needs to send the next ones, such as a cursor. The library hands it back without reading it:
+
+```json
+{ "id": "feed", "more": { "cursor": "c2" }, "items": [ … ] }
+```
+
+When the user scrolls to within five items of the end of such a section, the page calls `onLoadMore` with the section's `id` and its `more`. Load the next items and append them with a patch, with the `more` after them, or without `more` at the end:
+
+```json
+{ "v": 1, "operations": [ { "op": "appendItems", "section": "feed", "items": [ … ], "more": { "cursor": "c3" } } ] }
+```
+
+```swift
+controller.onLoadMore = { [weak controller] section, more in
+    Task {
+        do {
+            let data = try await api.nextPage(section: section, after: more)
+            controller?.apply(try DocumentDecoder().decodePatch(data))
+        } catch {
+            controller?.showLoadMoreFailure(in: section)
+        }
+    }
+}
+```
+
+Until then, a list or grid section shows a spinner below its items, and the page does not ask for that section again. After `showLoadMoreFailure(in:)` it shows a button that tries again, and scrolling back to the end of the section tries again too. A carousel shows neither and asks when it is scrolled near its end. A patch that appends to, replaces or inserts the section, or `setDocument`, ends the loading. Releases before 0.5.0 ignore `more` and skip `appendItems`.
 
 ## Your own components
 
@@ -322,6 +351,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
 | 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
+| 4 | 0.5.0 | `more` on a section; `appendItems` |
 
 Send it with your requests, so that the backend writes what the app reads:
 

@@ -9,6 +9,14 @@ private struct ShownSection {
     let columns: Int
     let spacing: Double
     let header: (template: String, path: String)?
+    let more: JSONValue?
+}
+
+/// Where loading the items after a section's is at, for a section with
+/// `more`. A section not loading has no state.
+private enum LoadingMore {
+    case loading
+    case failed
 }
 
 /// Shows a document's sections in a collection view.
@@ -28,6 +36,9 @@ private struct ShownSection {
 /// change the page's copy of the item's data, so a change stays when the cell
 /// is reused, until `setDocument`, or a patch that replaces the item, replaces
 /// the data.
+///
+/// The page is the collection view's delegate and data source; set
+/// `scrollViewDelegate` to get the scroll view's callbacks.
 public final class DocumentViewController: UIViewController {
     public let components: ComponentRegistry<UIView>
     public let actions: ActionRegistry
@@ -37,6 +48,17 @@ public final class DocumentViewController: UIViewController {
     /// the page is shown or the part at fault is first built.
     public var onIssue: ((Issue) -> Void)?
 
+    /// Called when the user nears the end of a section with `more`, with the
+    /// section's `id` and its `more`. Load the items after it and apply a
+    /// patch that appends them with `appendItems`, or call
+    /// `showLoadMoreFailure(in:)`. Until then, the section's footer shows a
+    /// spinner and the page asks for no more of that section.
+    public var onLoadMore: ((_ section: String, _ more: JSONValue) -> Void)?
+
+    /// Gets the collection view's scroll view callbacks, as its delegate
+    /// would. The collection view's own delegate is the page.
+    public weak var scrollViewDelegate: UIScrollViewDelegate?
+
     public private(set) lazy var collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeLayout())
 
     private var dataSource: UICollectionViewDiffableDataSource<String, String>?
@@ -45,6 +67,8 @@ public final class DocumentViewController: UIViewController {
     private var data: [TemplateKey: [String: JSONValue]] = [:]
     private var reportedIssues: Set<Issue> = []
     private var registeredTemplates: Set<String> = []
+    private var loadingMore: [String: LoadingMore] = [:]
+    private lazy var collectionDelegate = CollectionDelegate(page: self)
     /// The asynchronous actions running for the page, cancelled with it.
     let tasks = ActionTasks()
 
@@ -66,6 +90,10 @@ public final class DocumentViewController: UIViewController {
 
     public override func loadView() {
         collectionView.backgroundColor = .systemBackground
+        collectionView.delegate = collectionDelegate
+        collectionView.register(
+            LoadMoreFooter.self, forSupplementaryViewOfKind: LoadMoreFooter.kind, withReuseIdentifier: LoadMoreFooter.kind
+        )
         view = collectionView
     }
 
@@ -80,6 +108,13 @@ public final class DocumentViewController: UIViewController {
         }
         dataSource.supplementaryViewProvider = { [unowned self] collectionView, kind, indexPath in
             let section = sections[indexPath.section]
+            if kind == LoadMoreFooter.kind {
+                let footer = collectionView.dequeueReusableSupplementaryView(
+                    ofKind: kind, withReuseIdentifier: kind, for: indexPath
+                )
+                configureFooter(footer, section: section.id)
+                return footer
+            }
             guard let header = section.header else { return nil }
             let view = collectionView.dequeueReusableSupplementaryView(
                 ofKind: kind, withReuseIdentifier: header.template, for: indexPath
@@ -97,8 +132,10 @@ public final class DocumentViewController: UIViewController {
     public func setDocument(_ document: Document, animatingDifferences: Bool = true) {
         self.document = document
         reportedIssues = []
+        loadingMore = [:]
         if isViewLoaded {
             show(document, animatingDifferences: animatingDifferences)
+            loadMoreIfShown()
         }
     }
 
@@ -107,10 +144,15 @@ public final class DocumentViewController: UIViewController {
     /// items and sections show the patch's data; the others keep the changes
     /// made on the device. What the patch refers to that the page does not
     /// have is skipped and reported to `onIssue`, every time.
+    ///
+    /// A section the patch appends to, replaces or inserts is no longer
+    /// loading, and shows a footer while it has `more`.
     public func apply(_ patch: Patch, animatingDifferences: Bool = true) {
         let result = document.applying(patch)
         document = result.document
         (patch.issues + result.issues).forEach { onIssue?($0) }
+        let sectionIDs = Set(document.sections.map(\.id))
+        loadingMore = loadingMore.filter { sectionIDs.contains($0.key) && !result.loadedSections.contains($0.key) }
         if isViewLoaded {
             var kept = data
             for id in result.changedItems {
@@ -120,7 +162,18 @@ public final class DocumentViewController: UIViewController {
                 kept[.header(id)] = nil
             }
             show(document, keeping: kept, animatingDifferences: animatingDifferences)
+            loadMoreIfShown()
         }
+    }
+
+    /// Shows that loading the items after a section's failed: its footer
+    /// shows a button that tries again, and so does scrolling back to the end
+    /// of the section. A list or a grid has the footer; a carousel tries
+    /// again when it is scrolled to its end.
+    public func showLoadMoreFailure(in section: String) {
+        guard loadingMore[section] == .loading else { return }
+        loadingMore[section] = .failed
+        reconfigureFooter(of: section)
     }
 
     /// Shows a document with the data in `kept` in place of its own, for the
@@ -153,7 +206,8 @@ public final class DocumentViewController: UIViewController {
                 }
             }
             sections.append(ShownSection(
-                id: section.id, layout: section.layout, columns: section.columns, spacing: section.spacing, header: header
+                id: section.id, layout: section.layout, columns: section.columns, spacing: section.spacing,
+                header: header, more: section.more
             ))
             snapshot.appendSections([section.id])
 
@@ -206,6 +260,22 @@ public final class DocumentViewController: UIViewController {
         )
     }
 
+    private func configureFooter(_ view: UICollectionReusableView, section: String) {
+        guard let footer = view as? LoadMoreFooter else { return }
+        footer.show(failed: loadingMore[section] == .failed) { [weak self] in
+            guard let self, let index = sections.firstIndex(where: { $0.id == section }) else { return }
+            loadMore(index)
+        }
+    }
+
+    private func reconfigureFooter(of section: String) {
+        guard let index = sections.firstIndex(where: { $0.id == section }),
+              let footer = collectionView.supplementaryView(
+                  forElementKind: LoadMoreFooter.kind, at: IndexPath(item: 0, section: index)
+              ) else { return }
+        configureFooter(footer, section: section)
+    }
+
     private func reconfigureVisibleViews() {
         guard let dataSource else { return }
         for indexPath in collectionView.indexPathsForVisibleItems {
@@ -253,6 +323,51 @@ public final class DocumentViewController: UIViewController {
         return changed
     }
 
+    /// How close to the end of a section a cell is shown when the page asks
+    /// for the section's next items.
+    static let loadMoreDistance = 5
+
+    func willDisplayItem(at indexPath: IndexPath) {
+        if indexPath.item >= collectionView.numberOfItems(inSection: indexPath.section) - Self.loadMoreDistance {
+            loadMore(indexPath.section)
+        }
+    }
+
+    func willDisplayFooter(ofSection index: Int) {
+        loadMore(index)
+    }
+
+    /// Asks for the next items of the sections whose end shows, after a
+    /// document or a patch: cells added below the end may not come into view
+    /// to ask. A section whose loading failed waits to be scrolled to or
+    /// retried.
+    private func loadMoreIfShown() {
+        let shown = collectionView.indexPathsForVisibleItems.filter {
+            $0.item >= collectionView.numberOfItems(inSection: $0.section) - Self.loadMoreDistance
+        }
+        let footers = collectionView.indexPathsForVisibleSupplementaryElements(ofKind: LoadMoreFooter.kind)
+        for index in Set((shown + footers).map(\.section)) where index < sections.count {
+            if loadingMore[sections[index].id] == nil {
+                loadMore(index)
+            }
+        }
+    }
+
+    /// Asks the app for the items after a section's, unless they are loading.
+    private func loadMore(_ index: Int) {
+        guard index < sections.count, let more = sections[index].more else { return }
+        let id = sections[index].id
+        guard loadingMore[id] != .loading else { return }
+        loadingMore[id] = .loading
+        reconfigureFooter(of: id)
+        // Not from within the collection view's layout or update, where this
+        // is called from, in case the app applies a patch right away.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, loadingMore[id] == .loading else { return }
+            onLoadMore?(id, more)
+        }
+    }
+
     func report(_ issue: Issue) {
         guard reportedIssues.insert(issue).inserted else { return }
         onIssue?(issue)
@@ -290,12 +405,17 @@ public final class DocumentViewController: UIViewController {
                 section = NSCollectionLayoutSection(group: group)
                 section.interGroupSpacing = CGFloat(shown.spacing)
             }
+            let size = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44))
             if shown.header != nil {
-                section.boundarySupplementaryItems = [NSCollectionLayoutBoundarySupplementaryItem(
-                    layoutSize: NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(44)),
-                    elementKind: UICollectionView.elementKindSectionHeader,
-                    alignment: .top
-                )]
+                section.boundarySupplementaryItems.append(NSCollectionLayoutBoundarySupplementaryItem(
+                    layoutSize: size, elementKind: UICollectionView.elementKindSectionHeader, alignment: .top
+                ))
+            }
+            // A carousel's footer would sit under the row, not at its end.
+            if shown.more != nil, shown.layout != .carousel {
+                section.boundarySupplementaryItems.append(NSCollectionLayoutBoundarySupplementaryItem(
+                    layoutSize: size, elementKind: LoadMoreFooter.kind, alignment: .bottom
+                ))
             }
             return section
         }

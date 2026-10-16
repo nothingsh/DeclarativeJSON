@@ -37,6 +37,10 @@ public struct Document: Equatable, Sendable {
         public let spacing: Double
         public let header: Header?
         public let items: [Item]
+        /// What the backend needs to send the items after these, such as a
+        /// cursor, or nil when there are none. The library hands it to
+        /// `DocumentViewController.onLoadMore` and does not read it.
+        public let more: JSONValue?
     }
 
     /// A section header: a template and the data it shows.
@@ -146,7 +150,10 @@ extension Document.Section {
                 issues.append(Issue(.typeMismatch(property: "spacing", expected: .number), at: path))
             }
         }
-        self.init(id: raw.id, layout: layout, columns: columns, spacing: spacing, header: raw.header, items: raw.items)
+        self.init(
+            id: raw.id, layout: layout, columns: columns, spacing: spacing, header: raw.header, items: raw.items,
+            more: raw.more
+        )
     }
 }
 
@@ -159,6 +166,8 @@ struct RawSection: Decodable {
     let spacing: JSONValue?
     let header: Document.Header?
     let items: [Document.Item]
+    // decodeIfPresent gives nil for null, so `"more": null` is no more.
+    let more: JSONValue?
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -168,9 +177,10 @@ struct RawSection: Decodable {
         spacing = try container.decodeIfPresent(JSONValue.self, forKey: .spacing)
         header = try container.decodeIfPresent(Document.Header.self, forKey: .header)
         items = try container.decodeIfPresent([Document.Item].self, forKey: .items) ?? []
+        more = try container.decodeIfPresent(JSONValue.self, forKey: .more)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, layout, columns, spacing, header, items
+        case id, layout, columns, spacing, header, items, more
     }
 }

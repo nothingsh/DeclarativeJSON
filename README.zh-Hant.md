@@ -90,7 +90,7 @@ dependencies: [
 
 - `v`，格式的版本。這一版讀取第 1 版；其他版本的文件解碼失敗，丟出 `DocumentError.unsupportedVersion`。後來的版本在第 1 版上新增了什麼，見[版本](#版本)。
 - `templates`，從名稱對應到 cell 或 header 的視圖樹。
-- `sections`，依序排列。section 有 `id`、`layout`、可選的 `header` 和它的 `items`。
+- `sections`，依序排列。section 有 `id`、`layout`、可選的 `header`、它的 `items`，還有[後續項目](#載入更多)時有 `more`。
 
 ```json
 { "id": "featured", "layout": "carousel",
@@ -236,7 +236,7 @@ actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) 
 
 ## 頁面
 
-`DocumentViewController` 在 collection view 裡顯示文件。它的 `collectionView` 可以由你設定，例如加上下拉更新。
+`DocumentViewController` 在 collection view 裡顯示文件。頁面是 collection view 的 delegate 和 data source；`collectionView` 的其餘部分可以由你設定，例如加上下拉更新。要收到捲動回呼，設定 `scrollViewDelegate`。
 
 每個 cell 第一次顯示時依範本建出視圖並保留；顯示另一個項目時只把該項目的資料送給繫結。`set` 和 `toggle` 修改的是頁面持有的項目資料，所以 cell 捲出再捲回時改動仍在，cell 也會依新內容調整高度。
 
@@ -266,6 +266,35 @@ controller.apply(patch)
 `replaceItems` 和 `replaceSections` 原地取代 `id` 相同的項目和 section。`insertItems` 把項目插到 `section` 裡項目 `after` 的後面，`insertSections` 把 section 插到 section `after` 的後面；沒寫 `after` 時插在最前面。`removeItems` 和 `removeSections` 刪除 `ids` 裡的項目和 section，section 連同它的項目一起刪除。`templates` 可省略：加入新範本，取代同名的範本，用到它的 cell 會重建。
 
 操作依序執行，頁面一起做動畫。被取代或新插入的項目和 section 顯示 patch 的資料；其餘項目保留裝置上做過的改動，這一點和 `setDocument` 不同。patch 引用了頁面沒有的 `id`，或插入頁面已有的 `id` 時，略過那個項目、section 或操作，其餘照常套用。函式庫本身不發請求：patch 來自你自己的請求，或來自非同步動作裡收到的回應，用 `context.page?.apply(patch)` 套用。0.4.0 之前的版本不能套用 patch。
+
+### 載入更多
+
+section 的項目比文件裡帶的多時，用 `more` 表示，值是後端傳送後續項目需要的任何東西，例如游標。函式庫不讀它，原樣交回：
+
+```json
+{ "id": "feed", "more": { "cursor": "c2" }, "items": [ … ] }
+```
+
+使用者捲到離這種 section 結尾不到五個項目時，頁面呼叫 `onLoadMore`，傳入 section 的 `id` 和它的 `more`。載入後續項目，用 patch 附加，同時帶上再往後的 `more`；到底了就不寫 `more`：
+
+```json
+{ "v": 1, "operations": [ { "op": "appendItems", "section": "feed", "items": [ … ], "more": { "cursor": "c3" } } ] }
+```
+
+```swift
+controller.onLoadMore = { [weak controller] section, more in
+    Task {
+        do {
+            let data = try await api.nextPage(section: section, after: more)
+            controller?.apply(try DocumentDecoder().decodePatch(data))
+        } catch {
+            controller?.showLoadMoreFailure(in: section)
+        }
+    }
+}
+```
+
+在此之前，list 或 grid 的 section 在項目下方顯示轉圈，頁面也不再為這個 section 發起載入。呼叫 `showLoadMoreFailure(in:)` 後改為顯示重試按鈕，捲回 section 結尾也會重試。carousel 兩者都不顯示，捲到接近結尾時發起載入。附加、取代或插入這個 section 的 patch，以及 `setDocument`，結束載入。0.5.0 之前的版本忽略 `more`，略過 `appendItems`。
 
 ## 自訂元件
 
@@ -322,6 +351,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 版面；`vstack` 與 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure`；patch |
+| 4 | 0.5.0 | section 的 `more`；`appendItems` |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 

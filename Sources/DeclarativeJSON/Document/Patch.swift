@@ -2,7 +2,7 @@ import Foundation
 
 /// The operations of a patch, by their `op`.
 enum PatchOperationName: String, CaseIterable {
-    case replaceItems, insertItems, removeItems, replaceSections, insertSections, removeSections
+    case replaceItems, insertItems, appendItems, removeItems, replaceSections, insertSections, removeSections
 }
 
 /// A change to part of a page: items and sections to replace, insert or
@@ -14,6 +14,7 @@ enum PatchOperationName: String, CaseIterable {
 ///   "operations": [
 ///     { "op": "replaceItems", "items": [ { "id": "p1", "template": "product", "data": { … } } ] },
 ///     { "op": "insertItems", "section": "feed", "after": "p9", "items": [ … ] },
+///     { "op": "appendItems", "section": "feed", "items": [ … ], "more": "cursor-3" },
 ///     { "op": "removeSections", "ids": ["ads"] }
 ///   ] }
 /// ```
@@ -37,6 +38,9 @@ public struct Patch: Equatable, Sendable {
         /// Inserts items into a section after the item `after`, or first in
         /// the section without it.
         case insertItems([Document.Item], section: String, after: String?)
+        /// Adds items at the end of a section, such as its next page, and
+        /// replaces the section's `more`; nil means there are no more.
+        case appendItems([Document.Item], section: String, more: JSONValue?)
         /// Removes the items of these `id`s.
         case removeItems([String])
         /// Replaces the sections of the same `id`, in their place, with their
@@ -91,6 +95,11 @@ extension Patch: Decodable {
                 operations.append(.insertItems(
                     try items(), section: try fields.decode(String.self, forKey: .section), after: try after()
                 ))
+            case .appendItems?:
+                operations.append(.appendItems(
+                    try items(), section: try fields.decode(String.self, forKey: .section),
+                    more: try fields.decodeIfPresent(JSONValue.self, forKey: .more)
+                ))
             case .removeItems?:
                 operations.append(.removeItems(try ids()))
             case .replaceSections?:
@@ -115,7 +124,7 @@ extension Patch: Decodable {
     }
 
     private enum OperationKeys: String, CodingKey {
-        case op, items, section, after, ids, sections
+        case op, items, section, after, ids, sections, more
     }
 }
 
@@ -127,6 +136,9 @@ struct PatchResult {
     /// The items, and the sections whose headers, have the patch's data.
     let changedItems: Set<String>
     let changedSections: Set<String>
+    /// The sections whose `more` the patch wrote: those it appended to,
+    /// replaced or inserted.
+    let loadedSections: Set<String>
 }
 
 extension Document {
@@ -140,6 +152,7 @@ extension Document {
         var issues: [Issue] = []
         var changedItems: Set<String> = []
         var changedSections: Set<String> = []
+        var loadedSections: Set<String> = []
 
         func locate(_ id: String) -> (section: Int, item: Int)? {
             for (index, section) in sections.enumerated() {
@@ -178,10 +191,11 @@ extension Document {
                 .filter { accepts($1, path: "\(path).items[\($0)]", taken: &taken) }
                 .map(\.element)
             changedSections.insert(section.id)
+            loadedSections.insert(section.id)
             changedItems.formUnion(items.map(\.id))
             return Section(
                 id: section.id, layout: section.layout, columns: section.columns, spacing: section.spacing,
-                header: header, items: items
+                header: header, items: items, more: section.more
             )
         }
 
@@ -226,6 +240,21 @@ extension Document {
                     changedItems.insert(item.id)
                 }
                 sections[index] = sections[index].with(items: list)
+
+            case .appendItems(let items, let sectionID, let more):
+                guard let index = sections.firstIndex(where: { $0.id == sectionID }) else {
+                    issues.append(Issue(.unknownID(sectionID), at: "\(path).section"))
+                    continue
+                }
+                var list = sections[index].items
+                var taken = itemIDs()
+                for (itemIndex, item) in items.enumerated()
+                where accepts(item, path: "\(path).items[\(itemIndex)]", taken: &taken) {
+                    list.append(item)
+                    changedItems.insert(item.id)
+                }
+                sections[index] = sections[index].with(items: list, more: more)
+                loadedSections.insert(sectionID)
 
             case .removeItems(let ids):
                 for (index, id) in ids.enumerated() {
@@ -282,13 +311,18 @@ extension Document {
             document: Document(templates: templates, sections: sections, issues: self.issues),
             issues: issues,
             changedItems: changedItems,
-            changedSections: changedSections
+            changedSections: changedSections,
+            loadedSections: loadedSections
         )
     }
 }
 
 private extension Document.Section {
     func with(items: [Document.Item]) -> Self {
-        Self(id: id, layout: layout, columns: columns, spacing: spacing, header: header, items: items)
+        with(items: items, more: more)
+    }
+
+    func with(items: [Document.Item], more: JSONValue?) -> Self {
+        Self(id: id, layout: layout, columns: columns, spacing: spacing, header: header, items: items, more: more)
     }
 }

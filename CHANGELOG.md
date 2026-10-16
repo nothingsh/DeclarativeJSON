@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Loading more: a section's `more`, which the library hands to `DocumentViewController.onLoadMore` when the user nears the end of the section, and the patch operation `appendItems`, which adds the next items and replaces `more`. A list or grid section shows a spinner while it loads, and a button that tries again after `showLoadMoreFailure(in:)`.
+- `DocumentViewController.scrollViewDelegate`, which gets the collection view's scroll view callbacks.
+- `DocumentVersion.minor` 4, for `more` and `appendItems`.
+
+### Changed
+
+- The page is its collection view's delegate. An app that set `collectionView.delegate` replaced it, which stops loading more; set `scrollViewDelegate` instead.
+- `Patch.Operation` has the case `appendItems`. A `switch` over it has to handle it.
+
 ## [0.4.0] - 2026-10-16
 
 ### Added

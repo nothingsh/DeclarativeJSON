@@ -89,4 +89,36 @@ final class PatchTests: XCTestCase {
             Issue(.duplicateID("s"), at: "operations[6].sections[1]"),
         ])
     }
+
+    func testAppendingAddsItemsAtTheEndAndReplacesTheSectionsMore() throws {
+        let document = try DocumentDecoder().decode(Data("""
+        { "v": 1,
+          "templates": { "row": { "type": "label", "text": "$title" } },
+          "sections": [
+            { "id": "s", "more": { "cursor": 2 }, "items": [ { "id": "a", "template": "row" } ] },
+            { "id": "t", "more": "t2", "items": [] },
+            { "id": "u", "more": null, "items": [] }
+          ] }
+        """.utf8))
+        XCTAssertEqual(document.sections.map(\.more), [.object(["cursor": .number(2)]), .string("t2"), nil])
+        let patch = try patch("""
+        { "v": 1, "operations": [
+          { "op": "appendItems", "section": "s", "items": [ { "id": "b", "template": "row" }, { "id": "a", "template": "row" } ],
+            "more": { "cursor": 3 } },
+          { "op": "appendItems", "section": "gone", "items": [] },
+          { "op": "appendItems", "section": "t", "items": [ { "id": "c", "template": "row" } ] }
+        ] }
+        """)
+
+        let result = document.applying(patch)
+
+        XCTAssertEqual(result.document.sections.map { $0.items.map(\.id) }, [["a", "b"], ["c"], []])
+        XCTAssertEqual(result.document.sections.map(\.more), [.object(["cursor": .number(3)]), nil, nil])
+        XCTAssertEqual(result.changedItems, ["b", "c"])
+        XCTAssertEqual(result.loadedSections, ["s", "t"])
+        XCTAssertEqual(result.issues, [
+            Issue(.duplicateID("a"), at: "operations[0].items[1]"),
+            Issue(.unknownID("gone"), at: "operations[1].section"),
+        ])
+    }
 }
