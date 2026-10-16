@@ -145,7 +145,9 @@ final class BuildingTests: XCTestCase {
           "border": { "color": "black", "width": 1 }, "children": [ { "type": "label" } ] }
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.backgroundColor, .systemBlue)
+        // iOS 15 hands back the stack's color wrapped in another dynamic color.
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        XCTAssertEqual(stack.backgroundColor?.resolvedColor(with: light), UIColor.systemBlue.resolvedColor(with: light))
         XCTAssertEqual(stack.layer.cornerRadius, 8)
         XCTAssertEqual(stack.layer.borderWidth, 1)
         XCTAssertEqual(stack.subviews, stack.arrangedSubviews)
