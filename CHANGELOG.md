@@ -12,7 +12,8 @@ All notable changes to this project are documented here. The format follows
 - `DocumentViewController.scrollViewDelegate`, which gets the collection view's scroll view callbacks.
 - Page states: `DocumentViewController` can be created without a document and shows `loadingView` until `setDocument`; `showLoading()` and `showFailure(retry:)` show `loadingView` and `failureView` in place of the sections, and `retry()` tries again. A page without items or `more` shows `emptyView`. Each of the three views can be replaced.
 - `DocumentViewController.onRefresh`, which adds a refresh control and calls the app when the user pulls down.
-- `DocumentVersion.minor` 4, for `more` and `appendItems`.
+- The colors `systemMint`, `systemCyan` and `systemBrown`. Releases before 0.5.0 treat them as missing.
+- `DocumentVersion.minor` 4, for `more`, `appendItems` and the three colors.
 
 ### Changed
 

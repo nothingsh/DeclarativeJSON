@@ -390,7 +390,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 布局；`vstack` 与 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
-| 4 | 0.5.0 | section 的 `more`；`appendItems` |
+| 4 | 0.5.0 | section 的 `more`；`appendItems`；颜色 `systemMint`、`systemCyan`、`systemBrown` |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
