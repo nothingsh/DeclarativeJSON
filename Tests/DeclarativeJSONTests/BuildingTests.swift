@@ -129,7 +129,7 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(adaptive?.resolvedColor(with: light), UIColor(red: 0, green: 0, blue: 0, alpha: 1))
         XCTAssertEqual(adaptive?.resolvedColor(with: dark), .white)
         XCTAssertEqual(try label(#""font": "headline""#).font, .preferredFont(forTextStyle: .headline))
-        XCTAssertEqual(try label(#""font": { "size": 15, "weight": "semibold" }"#).font, .systemFont(ofSize: 15, weight: .semibold))
+        XCTAssertEqual(try label(#""font": { "size": 15, "weight": "semibold" }"#).font.pointSize, 15)
         XCTAssertEqual(issues, [])
 
         _ = try label(##""textColor": "#F00", "font": { "size": 15, "weight": "extraBold" }"##)
@@ -137,6 +137,29 @@ final class BuildingTests: XCTestCase {
             Issue(.typeMismatch(property: "font", expected: .font), at: "t"),
             Issue(.typeMismatch(property: "textColor", expected: .color), at: "t"),
         ])
+    }
+
+    func testAFontOfAGivenSizeFollowsTheTextSize() throws {
+        let sized = try XCTUnwrap(try build(#"{ "type": "label", "font": { "size": 15, "weight": "semibold" } }"#) as? UILabel)
+        let child = UIViewController()
+        child.view.addSubview(sized)
+        let parent = UIViewController()
+        parent.addChild(child)
+        parent.view.addSubview(child.view)
+        child.didMove(toParent: parent)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
+        window.rootViewController = parent
+        window.isHidden = false
+        defer { window.isHidden = true }
+
+        let larger = UITraitCollection(preferredContentSizeCategory: .accessibilityLarge)
+        parent.setOverrideTraitCollection(larger, forChild: child)
+        window.layoutIfNeeded()
+
+        // The font rounds the scaled size.
+        XCTAssertEqual(sized.font.pointSize, UIFontMetrics.default.scaledValue(for: 15, compatibleWith: larger), accuracy: 0.5)
+        XCTAssertGreaterThan(sized.font.pointSize, 15)
+        XCTAssertTrue(sized.font.fontDescriptor.symbolicTraits.contains(.traitBold))
     }
 
     func testAStackDrawsItsOwnBackgroundCornersAndBorder() throws {
