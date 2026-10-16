@@ -16,6 +16,10 @@ public indirect enum PropertyType: Hashable, Sendable {
     case oneOf([String])
     /// An object with these keys, as for a modifier with labeled arguments.
     case object([String: PropertyType])
+    /// A node, as in a template.
+    case node
+    /// One value of this type, or an array of them.
+    case list(PropertyType)
     /// Any JSON value.
     case any
 
@@ -32,6 +36,8 @@ public indirect enum PropertyType: Hashable, Sendable {
         case .insets: return "insets"
         case .oneOf: return "oneOf"
         case .object: return "object"
+        case .node: return "node"
+        case .list: return "list"
         case .any: return "any"
         }
     }
@@ -88,6 +94,16 @@ public struct ComponentSpec: Equatable, Sendable {
         "border": PropertySpec(.object(["color": .color, "width": .number])),
         "alpha": PropertySpec(.number),
         "tintColor": PropertySpec(.color),
+        // In front of the view, later ones further front. The view decides
+        // the size; `content` does not enlarge it.
+        "overlay": PropertySpec(.list(.object([
+            "alignment": .oneOf([
+                "fill", "center", "top", "bottom", "leading", "trailing",
+                "topLeading", "topTrailing", "bottomLeading", "bottomTrailing",
+            ]),
+            "offset": .object(["x": .number, "y": .number]),
+            "content": .node,
+        ])), acceptsReference: false),
         "isHidden": PropertySpec(.bool),
         // The opposite of isHidden, so that a template can show one view and
         // hide another with the same reference.

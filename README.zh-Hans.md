@@ -142,11 +142,18 @@ dependencies: [
 | `progress` | `progress`、`progressTintColor`、`trackTintColor` | |
 | `activity` | `isAnimating`、`hidesWhenStopped`、`color` | |
 
-每个组件还接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
+每个组件还接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
 
 - `image` 与 `button` 的 `image` 是 App asset catalog 里的图片名，找不到时按 SF Symbol 处理。`image` 同时有 `url` 时，它一直显示到 URL 的图片加载完成。
 - 不是 stack 也不是滚动视图的视图设了 `padding`，会被放进一个带该内边距的 stack。除无障碍属性外，其余通用属性都作用在这个 stack 上，所以背景会覆盖内边距。
 - 设了 `onTap` 的 `vstack` 或 `hstack`，点按其中任意位置都会执行它的动作，因此可以点按整行。其中的控件，如按钮或开关，仍处理自己的点按。给这个 stack 设 `accessibilityLabel`，VoiceOver 会把它读作一个按钮。
+- `overlay` 在视图前面放一个节点，或一组节点，后面的在上层。每个是 `{ "alignment": ..., "offset": { "x": ..., "y": ... }, "content": 节点 }`。`alignment` 取 `fill`（默认）、`center`、`top`、`bottom`、`leading`、`trailing`、`topLeading`、`topTrailing`、`bottomLeading` 或 `bottomTrailing`。`offset` 移动内容，x 朝 trailing 边、y 朝下；`fill` 不接受 `offset`。尺寸由视图决定，`clipsToBounds` 也会裁掉叠放内容。`content` 里的引用读条目数据。除非叠放里有节点设了事件，触摸会穿过它交给后面的视图。`overlay` 只接受常量。
+  ```json
+  { "type": "image", "url": "$cover", "width": 120, "height": 120,
+    "overlay": { "alignment": "topTrailing", "offset": { "x": -6, "y": 6 },
+                 "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
+                              "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
+  ```
 - `textfield` 带圆角边框。字体是 text style 时，`label` 与 `textfield` 跟随动态字体。
 
 ## 取值
@@ -281,6 +288,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | --- | --- | --- |
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
+| 2 | 0.3.0 | `overlay` |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 

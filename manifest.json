@@ -90,6 +90,44 @@
       "reference" : true,
       "type" : "bool"
     },
+    "overlay" : {
+      "element" : {
+        "properties" : {
+          "alignment" : {
+            "type" : "oneOf",
+            "values" : [
+              "fill",
+              "center",
+              "top",
+              "bottom",
+              "leading",
+              "trailing",
+              "topLeading",
+              "topTrailing",
+              "bottomLeading",
+              "bottomTrailing"
+            ]
+          },
+          "content" : {
+            "type" : "node"
+          },
+          "offset" : {
+            "properties" : {
+              "x" : {
+                "type" : "number"
+              },
+              "y" : {
+                "type" : "number"
+              }
+            },
+            "type" : "object"
+          }
+        },
+        "type" : "object"
+      },
+      "reference" : false,
+      "type" : "list"
+    },
     "padding" : {
       "reference" : true,
       "type" : "insets"
@@ -474,6 +512,6 @@
       }
     }
   },
-  "minor" : 1,
+  "minor" : 2,
   "v" : 1
 }

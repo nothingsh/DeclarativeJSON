@@ -169,6 +169,72 @@ final class BuildingTests: XCTestCase {
         XCTAssertFalse(wrapper.constraints.contains { $0.firstAttribute == .width && $0.isActive })
     }
 
+    func testOverlaysSitInFrontOfTheViewAtTheirAlignmentAndFollowTheItemData() throws {
+        data.send(["badge": .string("New")])
+        let image = try build("""
+        { "type": "image", "width": 120, "height": 120, "overlay": [
+          { "content": { "type": "vstack", "background": "black", "children": [] } },
+          { "alignment": "topTrailing", "offset": { "x": -6, "y": 6 },
+            "content": { "type": "label", "text": "$badge", "width": 40, "height": 20 } }
+        ]}
+        """)
+        image.frame = CGRect(x: 0, y: 0, width: 120, height: 120)
+        image.layoutIfNeeded()
+        let (dim, badge) = (image.subviews[0], try XCTUnwrap(image.subviews[1] as? UILabel))
+
+        XCTAssertEqual(image.subviews.count, 2)
+        XCTAssertEqual(dim.frame, image.bounds)
+        XCTAssertEqual(badge.frame, CGRect(x: 74, y: 6, width: 40, height: 20))
+        XCTAssertEqual(badge.text, "New")
+        data.send(["badge": .string("Hot")])
+        XCTAssertEqual(badge.text, "Hot")
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAnOverlayTakesTouchesOnlyWithAnEventAndMirrorsACenteredOffsetRightToLeft() throws {
+        let original = layoutDirection
+        layoutDirection = { .rightToLeft }
+        defer { layoutDirection = original }
+
+        let label = try build("""
+        { "type": "label", "overlay": [
+          { "alignment": "center", "offset": { "x": 10 },
+            "content": { "type": "hstack", "children": [ { "type": "label", "text": "Badge" } ] } },
+          { "alignment": "trailing", "offset": { "x": 10 },
+            "content": { "type": "button", "title": "Play", "onTap": { "action": "toggle", "path": "playing" } } }
+        ]}
+        """)
+        let (badge, button) = (label.subviews[0], label.subviews[1])
+        func constant(_ view: UIView, _ attribute: NSLayoutConstraint.Attribute) -> CGFloat? {
+            label.constraints.first { $0.firstItem === view && $0.firstAttribute == attribute }?.constant
+        }
+
+        XCTAssertFalse(badge.isUserInteractionEnabled)
+        XCTAssertTrue(button.isUserInteractionEnabled)
+        XCTAssertTrue(label.isUserInteractionEnabled)
+        XCTAssertEqual(constant(badge, .centerX), -10)
+        XCTAssertEqual(constant(button, .trailing), 10)
+    }
+
+    func testAnOverlayThatIsNotValidIsReportedAndLeftOut() throws {
+        let label = try build("""
+        { "type": "label", "overlay": [
+          { "alignment": "fill", "offset": { "x": 4 }, "content": { "type": "label" } },
+          { "alignment": "middle", "content": { "type": "label" } },
+          { "content": "badge" },
+          { "alignment": "bottom", "content": { "type": "label", "text": "Kept" } }
+        ]}
+        """)
+        let overlay = try XCTUnwrap(ComponentSpec.commonProperties["overlay"]).type
+
+        XCTAssertEqual(label.subviews.map { ($0 as? UILabel)?.text }, ["Kept"])
+        XCTAssertEqual(issues, [
+            Issue(.typeMismatch(property: "overlay", expected: overlay), at: "t"),
+            Issue(.typeMismatch(property: "overlay", expected: overlay), at: "t"),
+            Issue(.invalidNode, at: "t.overlay[2].content"),
+        ])
+    }
+
     func testAnImageShowsItsNamedImageUntilItsURLLoadsAndIgnoresALoadThatWasReplaced() throws {
         var completions: [URL: @MainActor @Sendable (UIImage?) -> Void] = [:]
         var cancelled: [URL] = []
