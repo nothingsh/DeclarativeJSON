@@ -61,6 +61,7 @@ controller.onIssue = { print($0) }
 - [事件與動作](#事件與動作)
 - [頁面](#頁面)
 - [自訂元件](#自訂元件)
+- [主題](#主題)
 - [圖片](#圖片)
 - [文件裡的問題](#文件裡的問題)
 - [版本](#版本)
@@ -144,7 +145,7 @@ dependencies: [
 
 每個元件還接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
 
-- `image` 與 `button` 的 `image` 是 App asset catalog 裡的圖片名稱，找不到時當作 SF Symbol。`image` 同時有 `url` 時，它一直顯示到 URL 的圖片載入完成。
+- `image` 與 `button` 的 `image` 是[主題](#主題)裡的圖片名稱，主題裡沒有時在 App 的 asset catalog 裡找，再找不到時當作 SF Symbol。`image` 同時有 `url` 時，它一直顯示到 URL 的圖片載入完成。
 - 不是 stack 也不是捲動視圖的視圖設了 `padding`，會被放進一個帶該內距的 stack。除了輔助使用屬性，其餘通用屬性都作用在這個 stack 上，所以背景會蓋住內距。
 - 設了 `onTap` 的 `vstack` 或 `hstack`，點擊其中任何位置都會執行它的動作，因此可以點擊整列；按住時 stack 會顯示醒目提示，`"highlight": false` 關閉醒目提示。其中的控制項，如按鈕或開關，仍處理自己的點擊，也不讓 stack 顯示醒目提示。給這個 stack 設定 `accessibilityLabel`，VoiceOver 會把它讀成一個按鈕。
 - `overlay` 在視圖前面放一個節點，或一組節點，後面的在上層。每個是 `{ "alignment": ..., "offset": { "x": ..., "y": ... }, "content": 節點 }`。`alignment` 取 `fill`（預設）、`center`、`top`、`bottom`、`leading`、`trailing`、`topLeading`、`topTrailing`、`bottomLeading` 或 `bottomTrailing`。`offset` 移動內容，x 朝 trailing 邊、y 朝下；`fill` 不接受 `offset`。尺寸由視圖決定，`clipsToBounds` 也會裁掉疊放內容。`content` 裡的引用讀取項目資料。除非疊放裡有節點設了事件，觸控會穿過它交給後面的視圖。`overlay` 只接受常數。
@@ -172,8 +173,8 @@ dependencies: [
 
 ## 取值
 
-- **顏色**：系統顏色名稱，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。邊框顏色只讀取一次，之後在淺色與深色模式間切換時不會跟著變。
-- **字型**：text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重從 `ultraLight` 到 `black`。這個字級是預設文字大小下的字級，會隨使用者設定的文字大小放大縮小，與內文相同。
+- **顏色**：[主題](#主題)裡的顏色名稱，預設就是系統顏色名稱，如 `label`、`secondaryLabel`、`systemBackground`、`separator`、`systemBlue`；`#RRGGBB` 或 `#RRGGBBAA`；或 `{ "light": "#000000", "dark": "#FFFFFF" }`。邊框顏色只讀取一次，之後在淺色與深色模式間切換時不會跟著變。
+- **字型**：主題裡的字型名稱，預設就是 text style，即 `largeTitle`、`title1` 到 `title3`、`headline`、`subheadline`、`body`、`callout`、`footnote`、`caption1` 或 `caption2`；或 `{ "size": 15, "weight": "semibold" }`，字重從 `ultraLight` 到 `black`。這個字級是預設文字大小下的字級，會隨使用者設定的文字大小放大縮小，與內文相同。
 - **內距**（`padding`）：一個數字表示四邊相同，或一個物件，含 `top`、`leading`、`bottom`、`trailing`、`horizontal`、`vertical` 中任意幾個。單邊優先於所在的軸，沒寫的邊為 0。
 - **長度**，如 `width` 和 `minLength`，必須是有限且非負的數；`aspectRatio` 必須大於 0。
 
@@ -379,9 +380,27 @@ components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.
 let controller = DocumentViewController(document: document, components: components, actions: actions)
 ```
 
-`BuildContext` 把每個屬性讀成 publisher，節點沒設定該屬性時回傳 nil。常數送出一次；引用隨項目資料的每個值送出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font` 和 `insets` 讀取上文的各種型別，`choice` 讀取一組字串之一，`value` 讀取其他任何東西。`onValue` 把屬性套用到視圖，`onEvent` 在視圖的某個 publisher 上執行 `context.action(.onTap)`，並把這個視圖當作動作的 `sourceView`。要自己執行動作，就用事件的值和視圖呼叫 `context.action` 回傳的值：`action(.bool(isOn), source: view)`。spec 寫了 `acceptsChildren: true` 時，子節點已替你建好，放在 `context.children`。通用屬性會作用在你回傳的視圖上。
+`BuildContext` 把每個屬性讀成 publisher，節點沒設定該屬性時回傳 nil。常數送出一次；引用隨項目資料的每個值送出。`number`、`length`、`integer`、`bool`、`string`、`url`、`color`、`font`、`image` 和 `insets` 依頁面的 `theme` 讀取上文的各種型別，`choice` 讀取一組字串之一，`value` 讀取其他任何東西。`onValue` 把屬性套用到視圖，`onEvent` 在視圖的某個 publisher 上執行 `context.action(.onTap)`，並把這個視圖當作動作的 `sourceView`。要自己執行動作，就用事件的值和視圖呼叫 `context.action` 回傳的值：`action(.bool(isOn), source: view)`。spec 寫了 `acceptsChildren: true` 時，子節點已替你建好，放在 `context.children`。通用屬性會作用在你回傳的視圖上。
 
 註冊已有的型別會取代它。`repeat` 不是元件，不能註冊：這個型別的節點一律是 [`repeat`](#元件)。
+
+## 主題
+
+文件裡的顏色名稱、字型名稱和圖片名稱都來自頁面的 `Theme`。`Theme.standard` 以 UIKit 的名稱提供系統顏色與 text style，沒有圖片。替換一個名稱，所有用到它的文件都隨之改變；也可以加上自己的名稱：
+
+```swift
+var theme = Theme.standard
+theme.colors["brand.primary"] = UIColor(named: "BrandPrimary")
+theme.colors["secondaryLabel"] = UIColor(named: "Subtitle")
+theme.fonts["price"] = .custom(.systemFont(ofSize: 20, weight: .bold))
+theme.fonts["headline"] = .custom(UIFont(name: "Avenir-Heavy", size: 17)!, relativeTo: .headline)
+theme.images["heart.fill"] = UIImage(systemName: "heart.fill")
+let controller = DocumentViewController(document: document, theme: theme)
+```
+
+主題裡的字型跟隨動態字體：`.textStyle(_:)` 與該 text style 相同；`.custom(_:relativeTo:)` 從給定字級出發，依給定的 text style 的比例放大縮小，預設是 body。顏色可以是動態顏色，跟隨淺色與深色模式。
+
+主題裡沒有的圖片名稱會依序在 asset catalog 和 SF Symbols 裡找；都找不到時回報 `unknownImage`，不顯示圖片。其他平台也要顯示的文件應只用主題裡的名稱，由各平台的 App 各自註冊。
 
 ## 圖片
 
@@ -407,6 +426,7 @@ URL 改變時，視圖取消先前的載入並忽略它的結果。
 - 不是帶 `type` 的物件的節點、未知或寫錯的動作、重複的 `id`、範本不存在的項目或 header 會被移除；
 - 未知的 `layout` 以列表顯示；
 - stack 之外的 `repeat`，以及 `repeat` 裡的 `set` 與 `toggle`，會被移除；
+- 找不到的圖片名稱不顯示圖片；
 - patch 裡未知的操作、頁面沒有的 `id`，以及插入處頁面已有的 `id`，會被略過。
 
 每個 `Issue` 都寫明位置，例如 `templates.product.children[2]`；patch 的問題寫 patch 裡的位置，例如 `operations[1].items[0]`。patch 的問題每次套用都會回報。
@@ -438,10 +458,10 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清單
 
-[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作、它們的參數和是否非同步，patch 的操作、`repeat` 的屬性，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件和動作：
+[`manifest.json`](manifest.json) 列出內建元件及其屬性、每個屬性的型別和是否接受引用、所有元件共有的屬性，以及內建動作、它們的參數和是否非同步，patch 的操作、`repeat` 的屬性、標準主題的顏色名稱、字型名稱和圖片名稱，還有它描述的版本 `v` 與 `minor`。後端的程式碼產生器可以讀取它，檢查自己寫出的文件。加上你自己的元件、動作和主題：
 
 ```swift
-let manifest = try Manifest(components: components, actions: actions).encoded()
+let manifest = try Manifest(components: components, actions: actions, theme: theme).encoded()
 ```
 
 [`protocol/`](protocol/README.md) 用不依賴 iOS 的說法描述格式本身，寫給後端和其他平台的渲染器，並附有每個渲染器都要跑的[共用案例](protocol/cases/README.md)。

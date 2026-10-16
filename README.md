@@ -61,6 +61,7 @@ A `$` value refers to a key of the item's `data`; everything else is a constant.
 - [Events and actions](#events-and-actions)
 - [The page](#the-page)
 - [Your own components](#your-own-components)
+- [Themes](#themes)
 - [Images](#images)
 - [Problems in a document](#problems-in-a-document)
 - [Versions](#versions)
@@ -144,7 +145,7 @@ The property names are those of the DeclarativeUIKit modifiers that set them. A 
 
 Every component also takes `width`, `height`, `aspectRatio`, `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border`, `alpha`, `tintColor`, `overlay`, `isHidden`, `isVisible`, `accessibilityLabel` and `accessibilityIdentifier`.
 
-- `image` on an `image` or a `button` names an image in the app's asset catalog, or else an SF Symbol. On an `image` with a `url`, it shows until the URL's image has loaded.
+- `image` on an `image` or a `button` names an image in the [theme](#themes), or else in the app's asset catalog, or else an SF Symbol. On an `image` with a `url`, it shows until the URL's image has loaded.
 - `padding` on a view that is not a stack or a scroll view puts it in a stack with that padding. The other common properties, except the accessibility ones, then apply to that stack, so a background covers the padding.
 - A tap anywhere in a `vstack` or `hstack` with `onTap` runs its actions, so a whole row can be tapped, and the stack is highlighted while it is pressed; `"highlight": false` turns that off. A control inside it, such as a button or a switch, keeps its own taps and does not highlight the stack. Give the stack an `accessibilityLabel` and VoiceOver reads it as one button.
 - `overlay` puts a node in front of the view, or an array of them, later ones further front. Each is `{ "alignment": ..., "offset": { "x": ..., "y": ... }, "content": node }`. `alignment` is `fill`, the default, `center`, `top`, `bottom`, `leading`, `trailing`, `topLeading`, `topTrailing`, `bottomLeading` or `bottomTrailing`. `offset` moves the content, x toward the trailing edge and y down; `fill` takes none. The view decides the size, and `clipsToBounds` clips the overlay too. References in `content` read the item's data. Touches go through an overlay to the view behind it unless a node in the overlay sets an event. `overlay` takes only a constant.
@@ -172,8 +173,8 @@ Every component also takes `width`, `height`, `aspectRatio`, `padding`, `backgro
 
 ## Values
 
-- **Colors**: a system color name, such as `label`, `secondaryLabel`, `systemBackground`, `separator` or `systemBlue`; `#RRGGBB` or `#RRGGBBAA`; or `{ "light": "#000000", "dark": "#FFFFFF" }`. A border's color is read once and does not follow a later change between light and dark mode.
-- **Fonts**: a text style, `largeTitle`, `title1` to `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1` or `caption2`; or `{ "size": 15, "weight": "semibold" }`, with a weight from `ultraLight` to `black`. The size is that at the default text size and grows and shrinks with the user's text size, as body text does.
+- **Colors**: a color name in the [theme](#themes), by default a system color name, such as `label`, `secondaryLabel`, `systemBackground`, `separator` or `systemBlue`; `#RRGGBB` or `#RRGGBBAA`; or `{ "light": "#000000", "dark": "#FFFFFF" }`. A border's color is read once and does not follow a later change between light and dark mode.
+- **Fonts**: a font name in the theme, by default a text style, `largeTitle`, `title1` to `title3`, `headline`, `subheadline`, `body`, `callout`, `footnote`, `caption1` or `caption2`; or `{ "size": 15, "weight": "semibold" }`, with a weight from `ultraLight` to `black`. The size is that at the default text size and grows and shrinks with the user's text size, as body text does.
 - **Insets**, for `padding`: one number for every edge, or an object with any of `top`, `leading`, `bottom`, `trailing`, `horizontal` and `vertical`. An edge wins over its axis, and edges not given are 0.
 - **Lengths**, such as `width` and `minLength`, are finite and not negative; `aspectRatio` is greater than 0.
 
@@ -379,9 +380,27 @@ components.register(ComponentSpec("rating", properties: ["value": PropertySpec(.
 let controller = DocumentViewController(document: document, components: components, actions: actions)
 ```
 
-`BuildContext` reads each property as a publisher, or returns nil when the node does not set it. A constant emits once; a reference emits each value of the item's data. `number`, `length`, `integer`, `bool`, `string`, `url`, `color`, `font` and `insets` read the types above, `choice` one of a set of strings, and `value` anything else. `onValue` applies a property to a view, and `onEvent` runs `context.action(.onTap)` on one of the view's publishers, with the view as the actions' `sourceView`. To run the actions yourself, call what `context.action` returns with the event's value and the view: `action(.bool(isOn), source: view)`. Children are built for you, in `context.children`, when the spec says `acceptsChildren: true`. The common properties are applied to the view you return.
+`BuildContext` reads each property as a publisher, or returns nil when the node does not set it. A constant emits once; a reference emits each value of the item's data. `number`, `length`, `integer`, `bool`, `string`, `url`, `color`, `font`, `image` and `insets` read the types above, with the page's `theme`, `choice` one of a set of strings, and `value` anything else. `onValue` applies a property to a view, and `onEvent` runs `context.action(.onTap)` on one of the view's publishers, with the view as the actions' `sourceView`. To run the actions yourself, call what `context.action` returns with the event's value and the view: `action(.bool(isOn), source: view)`. Children are built for you, in `context.children`, when the spec says `acceptsChildren: true`. The common properties are applied to the view you return.
 
 Registering a type that exists replaces it. `repeat` is not a component and cannot be registered: a node of that type is always a [`repeat`](#components).
+
+## Themes
+
+Color, font and image names in a document come from the page's `Theme`. `Theme.standard` has the system colors and text styles under their UIKit names, and no images. Replace a name to restyle every document that uses it, or add your own:
+
+```swift
+var theme = Theme.standard
+theme.colors["brand.primary"] = UIColor(named: "BrandPrimary")
+theme.colors["secondaryLabel"] = UIColor(named: "Subtitle")
+theme.fonts["price"] = .custom(.systemFont(ofSize: 20, weight: .bold))
+theme.fonts["headline"] = .custom(UIFont(name: "Avenir-Heavy", size: 17)!, relativeTo: .headline)
+theme.images["heart.fill"] = UIImage(systemName: "heart.fill")
+let controller = DocumentViewController(document: document, theme: theme)
+```
+
+A font in a theme follows Dynamic Type: `.textStyle(_:)` as the text style does, and `.custom(_:relativeTo:)` grows and shrinks from its size as the given text style does, body by default. A color can be dynamic, to follow light and dark mode.
+
+An image name the theme does not have is looked up in the asset catalog, then among the SF Symbols; a name that is none of them is reported as `unknownImage` and shows no image. A document that other platforms will show too should use only names in the theme, which each platform's app registers.
 
 ## Images
 
@@ -407,6 +426,7 @@ A document fails to decode only when it is not JSON, has another version, or get
 - a node that is not an object with a `type`, an unknown or malformed action, a duplicate `id`, and an item or header with an unknown template are left out;
 - an unknown `layout` is a list;
 - a `repeat` outside a stack, and `set` or `toggle` in a `repeat`, are left out;
+- an image name that is not found shows no image;
 - in a patch, an unknown operation, and an `id` the page does not have, or has already where the patch inserts it, are skipped.
 
 Each `Issue` says where it is, as in `templates.product.children[2]`, or `operations[1].items[0]` for a patch. The issues of a patch are reported each time it is applied.
@@ -438,10 +458,10 @@ A node can also carry a `fallback`, a node shown instead when the app does not k
 
 ## The manifest
 
-[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, the operations of a patch, the properties of `repeat`, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
+[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, the operations of a patch, the properties of `repeat`, the color, font and image names of the standard theme, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components, actions and theme:
 
 ```swift
-let manifest = try Manifest(components: components, actions: actions).encoded()
+let manifest = try Manifest(components: components, actions: actions, theme: theme).encoded()
 ```
 
 [`protocol/`](protocol/README.md) describes the format itself, without iOS terms, for the backend and for renderers on other platforms, with [cases](protocol/cases/README.md) that every renderer runs.

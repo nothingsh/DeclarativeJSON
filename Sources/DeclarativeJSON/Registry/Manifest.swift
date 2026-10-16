@@ -19,7 +19,10 @@ import Foundation
 ///     "navigate": { "async": false, "parameters": { "url": { "type": "url", "reference": true } } }
 ///   },
 ///   "operations": ["insertItems", …],
-///   "repeat": { "properties": { "items": { … }, "template": { "type": "node", "reference": false } } }
+///   "repeat": { "properties": { "items": { … }, "template": { "type": "node", "reference": false } } },
+///   "colors": ["black", …],
+///   "fonts": ["body", …],
+///   "images": []
 /// }
 /// ```
 ///
@@ -33,14 +36,28 @@ import Foundation
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
 /// `insets`, `oneOf` with its `values`, `object` with the type of each of
 /// its `properties`, `node`, `list` with the type of its `element`, which
-/// takes one such value or an array of them, and `any`.
+/// takes one such value or an array of them, and `any`. `colors`, `fonts`
+/// and `images` are the names a document can use for them, besides the
+/// forms a color or a font can be written in.
 public struct Manifest {
     public let components: [ComponentSpec]
     public let actions: [ActionSpec]
+    public let colors: [String]
+    public let fonts: [String]
+    public let images: [String]
 
-    public init(components: [ComponentSpec], actions: [ActionSpec]) {
+    public init(
+        components: [ComponentSpec],
+        actions: [ActionSpec],
+        colors: [String] = [],
+        fonts: [String] = [],
+        images: [String] = []
+    ) {
         self.components = components
         self.actions = actions
+        self.colors = colors.sorted()
+        self.fonts = fonts.sorted()
+        self.images = images.sorted()
     }
 
     public init<View>(components: ComponentRegistry<View>, actions: ActionRegistry) {
@@ -76,6 +93,9 @@ public struct Manifest {
             "actions": .object(actions),
             "operations": .array(PatchOperationName.allCases.map(\.rawValue).sorted().map(JSONValue.string)),
             "repeat": .object(["properties": Self.json(Self.repeatProperties)]),
+            "colors": .array(colors.map(JSONValue.string)),
+            "fonts": .array(fonts.map(JSONValue.string)),
+            "images": .array(images.map(JSONValue.string)),
         ])
     }
 

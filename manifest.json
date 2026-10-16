@@ -41,6 +41,47 @@
       }
     }
   },
+  "colors" : [
+    "black",
+    "clear",
+    "label",
+    "link",
+    "opaqueSeparator",
+    "placeholderText",
+    "quaternaryLabel",
+    "quaternarySystemFill",
+    "secondaryLabel",
+    "secondarySystemBackground",
+    "secondarySystemFill",
+    "secondarySystemGroupedBackground",
+    "separator",
+    "systemBackground",
+    "systemBlue",
+    "systemBrown",
+    "systemCyan",
+    "systemFill",
+    "systemGray",
+    "systemGray2",
+    "systemGray3",
+    "systemGray4",
+    "systemGray5",
+    "systemGray6",
+    "systemGreen",
+    "systemGroupedBackground",
+    "systemIndigo",
+    "systemMint",
+    "systemOrange",
+    "systemPink",
+    "systemPurple",
+    "systemRed",
+    "systemTeal",
+    "systemYellow",
+    "tertiaryLabel",
+    "tertiarySystemBackground",
+    "tertiarySystemFill",
+    "tertiarySystemGroupedBackground",
+    "white"
+  ],
   "common" : {
     "accessibilityIdentifier" : {
       "reference" : true,
@@ -532,6 +573,22 @@
       }
     }
   },
+  "fonts" : [
+    "body",
+    "callout",
+    "caption1",
+    "caption2",
+    "footnote",
+    "headline",
+    "largeTitle",
+    "subheadline",
+    "title1",
+    "title2",
+    "title3"
+  ],
+  "images" : [
+
+  ],
   "minor" : 5,
   "operations" : [
     "appendItems",

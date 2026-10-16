@@ -11,12 +11,14 @@ final class BuildingTests: XCTestCase {
     private var issues: [Issue] = []
     private let data = CurrentValueSubject<[String: JSONValue], Never>([:])
 
-    private func build(_ json: String, components: ComponentRegistry<UIView> = .standard) throws -> UIView {
+    private func build(
+        _ json: String, components: ComponentRegistry<UIView> = .standard, theme: Theme = .standard
+    ) throws -> UIView {
         let value = try JSONDecoder().decode(JSONValue.self, from: Data(json.utf8))
         var decodeIssues: [Issue] = []
         let node = try XCTUnwrap(Node(value, path: "t", issues: &decodeIssues))
         let builder = NodeBuilder(
-            components: components, actions: .standard, data: data, target: { [data] in
+            components: components, theme: theme, actions: .standard, data: data, target: { [data] in
                 ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), data: { data.value }) { change in
                     var changed = data.value
                     change(&changed)
@@ -139,6 +141,59 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(issues, [
             Issue(.typeMismatch(property: "font", expected: .font), at: "t"),
             Issue(.typeMismatch(property: "textColor", expected: .color), at: "t"),
+        ])
+    }
+
+    func testTheThemeReplacesAndAddsColorsFontsAndImages() throws {
+        let brand = UIColor(red: 0.2, green: 0.4, blue: 0.6, alpha: 1)
+        let heart = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { _ in }
+        var theme = Theme.standard
+        theme.colors["secondaryLabel"] = .systemPink
+        theme.colors["brand"] = brand
+        theme.fonts["headline"] = .custom(.italicSystemFont(ofSize: 17), relativeTo: .headline)
+        theme.fonts["price"] = .custom(.systemFont(ofSize: 20, weight: .bold))
+        theme.images["heart"] = heart
+
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "border": { "color": "brand", "width": 1 }, "children": [
+          { "type": "label", "textColor": "secondaryLabel", "font": "headline" },
+          { "type": "label", "textColor": { "light": "brand", "dark": "white" }, "font": "price" },
+          { "type": "image", "image": "heart" },
+          { "type": "button", "image": "heart" }
+        ]}
+        """, theme: theme) as? UIStackView)
+        let views = stack.arrangedSubviews
+
+        let headline = try XCTUnwrap(views[0] as? UILabel)
+        XCTAssertEqual(headline.textColor, .systemPink)
+        XCTAssertTrue(headline.font.fontDescriptor.symbolicTraits.contains(.traitItalic))
+        let price = try XCTUnwrap(views[1] as? UILabel)
+        XCTAssertEqual(price.textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light)), brand)
+        XCTAssertEqual(price.font.pointSize, 20, accuracy: 0.5)
+        XCTAssertEqual(stack.layer.borderColor, brand.cgColor)
+        XCTAssertIdentical((views[2] as? UIImageView)?.image, heart)
+        XCTAssertIdentical((views[3] as? UIButton)?.image(for: .normal), heart)
+        XCTAssertEqual(issues, [])
+    }
+
+    func testAnImageNameThatIsNotFoundIsReported() throws {
+        data.send(["icon": .string("photo")])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "vstack", "children": [
+          { "type": "image", "image": "$icon" },
+          { "type": "button", "image": "no.such.image" }
+        ]}
+        """) as? UIStackView)
+        let image = try XCTUnwrap(stack.arrangedSubviews[0] as? UIImageView)
+        XCTAssertNotNil(image.image)
+        XCTAssertNil((stack.arrangedSubviews[1] as? UIButton)?.image(for: .normal))
+
+        data.send(["icon": .string("no.such.icon")])
+
+        XCTAssertNil(image.image)
+        XCTAssertEqual(issues, [
+            Issue(.unknownImage("no.such.image"), at: "t.children[1]"),
+            Issue(.unknownImage("no.such.icon"), at: "t.children[0]"),
         ])
     }
 

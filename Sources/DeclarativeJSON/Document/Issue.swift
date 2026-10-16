@@ -50,6 +50,9 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
         /// `set` or `toggle` in the template of a `repeat`, which cannot
         /// change an element's data. It is left out.
         case unsupportedAction(String)
+        /// An image name that the app's theme does not have, nor its asset
+        /// catalog or SF Symbols. No image is shown.
+        case unknownImage(String)
     }
 
     public let kind: Kind
@@ -100,6 +103,8 @@ public struct Issue: Hashable, Sendable, CustomStringConvertible {
             return "\(path): a repeat can only be a child of vstack, hstack, vscroll or hscroll; left out"
         case .unsupportedAction(let name):
             return "\(path): \"\(name)\" cannot change the data of an element of a repeat; left out"
+        case .unknownImage(let name):
+            return "\(path): no image \"\(name)\"; none is shown"
         }
     }
 }

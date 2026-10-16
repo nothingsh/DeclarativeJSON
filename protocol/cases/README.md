@@ -32,6 +32,7 @@ An issue is written as an object with its `kind`, where it is, `at`, and the val
 | `unknownOperation` | `operation` |
 | `unexpectedRepeat` | — |
 | `unsupportedAction` | `action` |
+| `unknownImage` | `image` |
 
 ```json
 { "kind": "typeMismatch", "property": "numberOfLines", "expected": { "type": "integer" }, "at": "templates.row" }
@@ -54,7 +55,7 @@ Issues compare as sets: neither the order a renderer reports them in nor how oft
 { "name": "…", "document": { … }, "issues": [ … ] }
 ```
 
-The harness shows `document` so that every item and header is built with its own data, as a page tall and wide enough for all of them, and collects what is reported while decoding and showing it.
+The harness shows `document` so that every item and header is built with its own data, as a page tall and wide enough for all of them, and collects what is reported while decoding and showing it. It uses the standard theme, which names no images.
 
 ## Actions
 
