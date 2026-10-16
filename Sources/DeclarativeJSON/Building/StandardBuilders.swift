@@ -186,10 +186,15 @@ extension ComponentRegistry where View == UIView {
 private extension UIStackView {
 
     /// Runs the stack's `onTap` when anywhere in it is tapped, except on a
-    /// control inside it, which keeps its own taps. With an
+    /// control inside it, which keeps its own taps, and highlights the stack
+    /// while it is pressed unless `highlight` is false. With an
     /// `accessibilityLabel`, VoiceOver reads the stack as one button.
     func onTap(_ context: BuildContext<UIView>) -> Self {
         guard let action = context.action(.onTap) else { return self }
+        let press = PressHighlight()
+        background { press.highlight }
+        addGestureRecognizer(press)
+        onValue(context.bool("highlight")) { _, highlight in press.isEnabled = highlight ?? true }
         accessibilityTraits.insert(.button)
         isAccessibilityElement = context.node.properties["accessibilityLabel"] != nil
         return onEvent(action, { $0.gesturePublisher(makeTapRecognizer()) })

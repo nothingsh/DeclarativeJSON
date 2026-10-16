@@ -129,9 +129,9 @@ dependencies: [
 
 | 型別 | 屬性 | 事件 |
 | --- | --- | --- |
-| `vstack` | `alignment`（`leading`、`center`、`trailing`、`fill`）、`spacing` | `onTap` |
-| `hstack` | `alignment`（`top`、`center`、`bottom`、`firstTextBaseline`、`lastTextBaseline`、`fill`）、`spacing` | `onTap` |
-| `vscroll`、`hscroll` | `vstack` 和 `hstack` 的屬性，另有 `showsIndicators`、`bounces` | |
+| `vstack` | `alignment`（`leading`、`center`、`trailing`、`fill`）、`spacing`、`highlight` | `onTap` |
+| `hstack` | `alignment`（`top`、`center`、`bottom`、`firstTextBaseline`、`lastTextBaseline`、`fill`）、`spacing`、`highlight` | `onTap` |
+| `vscroll`、`hscroll` | 與 `vstack`、`hstack` 相同的 `alignment` 和 `spacing`，另有 `showsIndicators`、`bounces` | |
 | `spacer` | `minLength`，只接受常數 | |
 | `label` | `text`、`font`、`textColor`、`numberOfLines`、`textAlignment`、`adjustsFontSizeToFitWidth` | |
 | `image` | `url`、`image`、`contentMode`（`scaleToFill`、`scaleAspectFit`、`scaleAspectFill`、`center`） | |
@@ -146,7 +146,7 @@ dependencies: [
 
 - `image` 與 `button` 的 `image` 是 App asset catalog 裡的圖片名稱，找不到時當作 SF Symbol。`image` 同時有 `url` 時，它一直顯示到 URL 的圖片載入完成。
 - 不是 stack 也不是捲動視圖的視圖設了 `padding`，會被放進一個帶該內距的 stack。除了輔助使用屬性，其餘通用屬性都作用在這個 stack 上，所以背景會蓋住內距。
-- 設了 `onTap` 的 `vstack` 或 `hstack`，點擊其中任何位置都會執行它的動作，因此可以點擊整列。其中的控制項，如按鈕或開關，仍處理自己的點擊。給這個 stack 設定 `accessibilityLabel`，VoiceOver 會把它讀成一個按鈕。
+- 設了 `onTap` 的 `vstack` 或 `hstack`，點擊其中任何位置都會執行它的動作，因此可以點擊整列；按住時 stack 會顯示醒目提示，`"highlight": false` 關閉醒目提示。其中的控制項，如按鈕或開關，仍處理自己的點擊，也不讓 stack 顯示醒目提示。給這個 stack 設定 `accessibilityLabel`，VoiceOver 會把它讀成一個按鈕。
 - `overlay` 在視圖前面放一個節點，或一組節點，後面的在上層。每個是 `{ "alignment": ..., "offset": { "x": ..., "y": ... }, "content": 節點 }`。`alignment` 取 `fill`（預設）、`center`、`top`、`bottom`、`leading`、`trailing`、`topLeading`、`topTrailing`、`bottomLeading` 或 `bottomTrailing`。`offset` 移動內容，x 朝 trailing 邊、y 朝下；`fill` 不接受 `offset`。尺寸由視圖決定，`clipsToBounds` 也會裁掉疊放內容。`content` 裡的引用讀取項目資料。除非疊放裡有節點設了事件，觸控會穿過它交給後面的視圖。`overlay` 只接受常數。
   ```json
   { "type": "image", "url": "$cover", "width": 120, "height": 120,
@@ -288,7 +288,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | --- | --- | --- |
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
-| 2 | 0.3.0 | `overlay`；`grid` 版面 |
+| 2 | 0.3.0 | `overlay`；`grid` 版面；`vstack` 與 `hstack` 的 `highlight` |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 

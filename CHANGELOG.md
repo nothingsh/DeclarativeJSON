@@ -10,10 +10,12 @@ All notable changes to this project are documented here. The format follows
 
 - `overlay` on any node: nodes in front of the view, at an alignment and an offset, such as a badge on an image. Touches go through an overlay unless a node in it sets an event.
 - The `grid` layout for a section, with `columns` and `spacing`.
-- `DocumentVersion.minor` 2, for `overlay` and `grid`, and the types `node` and `list` in the manifest.
+- `highlight` on `vstack` and `hstack`: `false` turns off the highlight of a stack with `onTap`.
+- `DocumentVersion.minor` 2, for `overlay`, `grid` and `highlight`, and the types `node` and `list` in the manifest.
 
 ### Changed
 
+- A `vstack` or `hstack` with `onTap` is highlighted with `systemFill` behind its content while it is pressed, as a list row is. Set `"highlight": false` to keep the old look.
 - `PropertyType` has the cases `node` and `list`, and `Document.Layout` the case `grid`. A `switch` over them has to handle the new cases.
 
 ## [0.2.0] - 2026-10-16
