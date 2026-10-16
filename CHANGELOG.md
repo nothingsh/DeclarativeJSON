@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-16
+
 ### Added
 
 - Loading more: a section's `more`, which the library hands to `DocumentViewController.onLoadMore` when the user nears the end of the section, and the patch operation `appendItems`, which adds the next items and replaces `more`. A list or grid section shows a spinner while it loads, and a button that tries again after `showLoadMoreFailure(in:)`; `makeLoadMoreView` replaces them with a `LoadMoreView` of the app's.
@@ -84,7 +86,8 @@ First release.
 - `manifest.json` and `Manifest`, describing the components and actions for a backend.
 - Example app.
 
-[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/nothingsh/DeclarativeJSON/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/nothingsh/DeclarativeJSON/compare/0.1.0...0.2.0
