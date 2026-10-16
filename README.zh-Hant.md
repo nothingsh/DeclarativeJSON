@@ -363,7 +363,7 @@ controller.onImpression = { item in
 }
 ```
 
-使用者看到一個帶 `tracking` 的項目時，頁面呼叫一次 `onImpression`：頁面在 window 裡時，項目至少一半在螢幕上、連續半秒。要換標準，設定 `impressionFraction` 和 `impressionDuration`。同一份文件裡每個項目只回報一次；`setDocument` 之後重新計算，取代項目的 patch 不會讓它再回報一次。動作也能在 `context.item` 裡讀到 `tracking`，可以用你自己的動作統計點擊。0.6.0 之前的版本忽略 `tracking`。
+使用者看到一個帶 `tracking` 的項目時，頁面呼叫一次 `onImpression`：頁面在 window 裡、且所在 scene 不在背景時，項目至少一半在螢幕上、連續半秒；進入背景會讓計時重新開始。要換標準，設定 `impressionFraction` 和 `impressionDuration`。同一份文件裡每個項目只回報一次；`setDocument` 之後重新計算，取代項目的 patch 不會讓它再回報一次。動作也能在 `context.item` 裡讀到 `tracking`，可以用你自己的動作統計點擊。0.6.0 之前的版本忽略 `tracking`。
 
 ## 自訂元件
 

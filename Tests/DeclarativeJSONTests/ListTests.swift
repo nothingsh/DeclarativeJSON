@@ -695,5 +695,33 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(reported, [.string("a"), .string("b"), .string("c")])
         window.isHidden = true
     }
+
+    func testAnItemIsNotTimedWhileThePagesSceneIsInTheBackground() throws {
+        let controller = try show("""
+        { "v": 1, "templates": { "row": { "type": "label", "height": 100 } },
+          "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "tracking": "a" } ] } ] }
+        """)
+        var reported: [JSONValue?] = []
+        var isInBackground = false
+        controller.isInBackground = { isInBackground }
+        controller.impressionDuration = 0.2
+        controller.onImpression = { reported.append($0.tracking) }
+        let window = showInWindow(controller, size: CGSize(width: 320, height: 480))
+
+        // Leaves before the duration, and stays away longer than it.
+        wait(0.1)
+        isInBackground = true
+        NotificationCenter.default.post(name: UIScene.didEnterBackgroundNotification, object: nil)
+        wait(0.3)
+        XCTAssertEqual(reported, [])
+
+        isInBackground = false
+        NotificationCenter.default.post(name: UIScene.willEnterForegroundNotification, object: nil)
+        wait(0.1)
+        XCTAssertEqual(reported, [], "timed again from the start")
+        wait(0.2)
+        XCTAssertEqual(reported, [.string("a")])
+        window.isHidden = true
+    }
 }
 
