@@ -26,7 +26,8 @@ import Foundation
 /// `reference` tells whether the value can be a `$` reference. A type is one
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
 /// `insets`, `oneOf` with its `values`, `object` with the type of each of
-/// its `properties`, and `any`.
+/// its `properties`, `node`, `list` with the type of its `element`, which
+/// takes one such value or an array of them, and `any`.
 public struct Manifest {
     public let components: [ComponentSpec]
     public let actions: [ActionSpec]
@@ -80,12 +81,14 @@ public struct Manifest {
 
     private static func json(_ type: PropertyType) -> [String: JSONValue] {
         switch type {
-        case .number, .integer, .bool, .string, .url, .color, .font, .insets, .any:
+        case .number, .integer, .bool, .string, .url, .color, .font, .insets, .node, .any:
             return ["type": .string(type.name)]
         case .oneOf(let values):
             return ["type": .string(type.name), "values": .array(values.map(JSONValue.string))]
         case .object(let fields):
             return ["type": .string(type.name), "properties": .object(fields.mapValues { .object(json($0)) })]
+        case .list(let element):
+            return ["type": .string(type.name), "element": .object(json(element))]
         }
     }
 }

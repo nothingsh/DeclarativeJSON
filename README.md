@@ -142,11 +142,18 @@ The property names are those of the DeclarativeUIKit modifiers that set them. A 
 | `progress` | `progress`, `progressTintColor`, `trackTintColor` | |
 | `activity` | `isAnimating`, `hidesWhenStopped`, `color` | |
 
-Every component also takes `width`, `height`, `aspectRatio`, `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border`, `alpha`, `tintColor`, `isHidden`, `isVisible`, `accessibilityLabel` and `accessibilityIdentifier`.
+Every component also takes `width`, `height`, `aspectRatio`, `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border`, `alpha`, `tintColor`, `overlay`, `isHidden`, `isVisible`, `accessibilityLabel` and `accessibilityIdentifier`.
 
 - `image` on an `image` or a `button` names an image in the app's asset catalog, or else an SF Symbol. On an `image` with a `url`, it shows until the URL's image has loaded.
 - `padding` on a view that is not a stack or a scroll view puts it in a stack with that padding. The other common properties, except the accessibility ones, then apply to that stack, so a background covers the padding.
 - A tap anywhere in a `vstack` or `hstack` with `onTap` runs its actions, so a whole row can be tapped. A control inside it, such as a button or a switch, keeps its own taps. Give the stack an `accessibilityLabel` and VoiceOver reads it as one button.
+- `overlay` puts a node in front of the view, or an array of them, later ones further front. Each is `{ "alignment": ..., "offset": { "x": ..., "y": ... }, "content": node }`. `alignment` is `fill`, the default, `center`, `top`, `bottom`, `leading`, `trailing`, `topLeading`, `topTrailing`, `bottomLeading` or `bottomTrailing`. `offset` moves the content, x toward the trailing edge and y down; `fill` takes none. The view decides the size, and `clipsToBounds` clips the overlay too. References in `content` read the item's data. Touches go through an overlay to the view behind it unless a node in the overlay sets an event. `overlay` takes only a constant.
+  ```json
+  { "type": "image", "url": "$cover", "width": 120, "height": 120,
+    "overlay": { "alignment": "topTrailing", "offset": { "x": -6, "y": 6 },
+                 "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
+                              "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
+  ```
 - A `textfield` has a rounded border. `label` and `textfield` follow Dynamic Type when their font is a text style.
 
 ## Values
@@ -281,6 +288,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | --- | --- | --- |
 | 0 | 0.1.0 | Version 1 |
 | 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
+| 2 | 0.3.0 | `overlay` |
 
 Send it with your requests, so that the backend writes what the app reads:
 
