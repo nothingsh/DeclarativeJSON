@@ -20,11 +20,15 @@ public struct ItemInfo: Equatable, Sendable {
     public let section: String
     /// The name of the template that shows the item or the header.
     public let template: String
+    /// The item's `tracking`, for analytics; nil for a header and for an
+    /// item without one.
+    public let tracking: JSONValue?
 
-    public init(id: String?, section: String, template: String) {
+    public init(id: String?, section: String, template: String, tracking: JSONValue? = nil) {
         self.id = id
         self.section = section
         self.template = template
+        self.tracking = tracking
     }
 
     public var isHeader: Bool { id == nil }

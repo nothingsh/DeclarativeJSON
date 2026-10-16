@@ -98,7 +98,7 @@ dependencies: [
   "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
 ```
 
-`layout` 取 `list`，一欄佔滿寬度、高度隨內容的 cell；取 `carousel`，一列橫向捲動；或取 `grid`，每列若干等寬的 cell。預設是 `list`。`grid` 另有 `columns`（每列幾個 cell，預設 2）和 `spacing`（cell 之間的橫向與縱向間距，預設 0）。一列的高度取這一列裡最高的 cell，每個 cell 保持自己的高度，靠這一列的頂端。項目有在整頁唯一的 `id`、所用 `template` 的名稱和它的 `data`（一個 JSON 物件）。header 同樣有 `template` 和 `data`。
+`layout` 取 `list`，一欄佔滿寬度、高度隨內容的 cell；取 `carousel`，一列橫向捲動；或取 `grid`，每列若干等寬的 cell。預設是 `list`。`grid` 另有 `columns`（每列幾個 cell，預設 2）和 `spacing`（cell 之間的橫向與縱向間距，預設 0）。一列的高度取這一列裡最高的 cell，每個 cell 保持自己的高度，靠這一列的頂端。項目有在整頁唯一的 `id`、所用 `template` 的名稱、它的 `data`（一個 JSON 物件），以及可選的 [`tracking`](#曝光)。header 同樣有 `template` 和 `data`。
 
 範本裡的節點是一個物件，帶 `type`、它的屬性，stack 還帶 `children`，還可以帶 [`fallback`](#版本)：
 
@@ -202,7 +202,7 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` 用 `string`、`url`、`bool` 和 `number` 讀取參數，型別不對時會回報；`parameters` 給出全部參數。`event` 是事件的值，`data` 是項目的資料，`update { $0["key"] = … }` 像 `set` 一樣修改資料。
 
-`item` 說明動作是為哪個項目執行的：它的 `id`、`section` 和 `template`；section 的 header 則 `isHeader` 為 true、沒有 `id`。`sourceView` 是發出事件的視圖，`page` 是 `DocumentViewController`，用來從它們彈出畫面：
+`item` 說明動作是為哪個項目執行的：它的 `id`、`section`、`template` 和 `tracking`；section 的 header 則 `isHeader` 為 true、沒有 `id`。`sourceView` 是發出事件的視圖，`page` 是 `DocumentViewController`，用來從它們彈出畫面：
 
 ```swift
 actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) { context in
@@ -335,6 +335,22 @@ controller.onRefresh = { done in
 
 這些視圖顯示在 section 後面、填滿 collection view，所以空頁面或失敗的頁面也能下拉。預設的視圖是轉圈和英文提示；把 `loadingView`、`failureView`、`emptyView` 換成你自己的，例如頁面的骨架畫面或在地化的文字，你的失敗視圖要呼叫 `retry()`。下拉更新失敗時不需要 `showFailure`：呼叫 `done`，頁面保留目前顯示的內容。
 
+### 曝光
+
+項目可以帶 `tracking`，值是你的埋點統計需要的任何東西，例如廣告 id；函式庫不讀它，原樣交給你：
+
+```json
+{ "id": "p1", "template": "product", "data": { … }, "tracking": { "slot": 3, "campaign": "fall" } }
+```
+
+```swift
+controller.onImpression = { item in
+    analytics.impression(item.tracking)
+}
+```
+
+使用者看到一個帶 `tracking` 的項目時，頁面呼叫一次 `onImpression`：頁面在 window 裡時，項目至少一半在螢幕上、連續半秒。要換標準，設定 `impressionFraction` 和 `impressionDuration`。同一份文件裡每個項目只回報一次；`setDocument` 之後重新計算，取代項目的 patch 不會讓它再回報一次。動作也能在 `context.item` 裡讀到 `tracking`，可以用你自己的動作統計點擊。0.6.0 之前的版本忽略 `tracking`。
+
 ## 自訂元件
 
 註冊一個型別，寫明它接受什麼、怎麼建出視圖：
@@ -391,6 +407,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | 2 | 0.3.0 | `overlay`；`grid` 版面；`vstack` 與 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；顏色 `systemMint`、`systemCyan`、`systemBrown` |
+| 5 | 0.6.0 | 項目的 `tracking` |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 

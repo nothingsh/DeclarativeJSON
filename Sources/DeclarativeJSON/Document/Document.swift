@@ -65,16 +65,21 @@ public struct Document: Equatable, Sendable {
         public let id: String
         public let template: String
         public let data: [String: JSONValue]
+        /// What the app's analytics need to count the item, which the library
+        /// hands over without reading it; nil when the backend sent none.
+        public let tracking: JSONValue?
 
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             id = try container.decode(String.self, forKey: .id)
             template = try container.decode(String.self, forKey: .template)
             data = try container.decodeIfPresent([String: JSONValue].self, forKey: .data) ?? [:]
+            // decodeIfPresent gives nil for null.
+            tracking = try container.decodeIfPresent(JSONValue.self, forKey: .tracking)
         }
 
         private enum CodingKeys: String, CodingKey {
-            case id, template, data
+            case id, template, data, tracking
         }
     }
 }

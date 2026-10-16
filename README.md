@@ -98,7 +98,7 @@ A document has three keys:
   "items": [ { "id": "f1", "template": "card", "data": { "name": "Keyboard" } } ] }
 ```
 
-`layout` is `list`, one column of full-width cells as tall as their content, `carousel`, one row that scrolls sideways, or `grid`, rows of cells of equal width; `list` is the default. A `grid` takes `columns`, the cells in a row, 2 by default, and `spacing`, the space between cells across and down, 0 by default. A row is as tall as its tallest cell, and each cell keeps its own height at the top of the row. An item has an `id`, unique in the page, the name of its `template` and its `data`, a JSON object. A header has a `template` and `data` too.
+`layout` is `list`, one column of full-width cells as tall as their content, `carousel`, one row that scrolls sideways, or `grid`, rows of cells of equal width; `list` is the default. A `grid` takes `columns`, the cells in a row, 2 by default, and `spacing`, the space between cells across and down, 0 by default. A row is as tall as its tallest cell, and each cell keeps its own height at the top of the row. An item has an `id`, unique in the page, the name of its `template`, its `data`, a JSON object, and optionally [`tracking`](#impressions). A header has a `template` and `data` too.
 
 A node of a template is an object with a `type`, its properties, for a stack its `children`, and optionally a [`fallback`](#versions):
 
@@ -202,7 +202,7 @@ actions.register(ActionSpec("track", parameters: ["event": PropertySpec(.string)
 
 `ActionContext` reads parameters with `string`, `url`, `bool` and `number`, which report a value of the wrong type, or gives them all in `parameters`. `event` is the event's value, `data` the item's data, and `update { $0["key"] = … }` changes the data as `set` does.
 
-`item` tells which item the action runs for: its `id`, its `section` and its `template`, or, for a section's header, `isHeader` and no `id`. `sourceView` is the view that sent the event and `page` the `DocumentViewController`, for presenting from them:
+`item` tells which item the action runs for: its `id`, its `section`, its `template` and its `tracking`, or, for a section's header, `isHeader` and no `id`. `sourceView` is the view that sent the event and `page` the `DocumentViewController`, for presenting from them:
 
 ```swift
 actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) { context in
@@ -335,6 +335,22 @@ controller.onRefresh = { done in
 
 The views are shown behind the sections, filling the collection view, so an empty or failed page can still be pulled. The default ones are a spinner and English messages; set `loadingView`, `failureView` and `emptyView` to your own, such as a skeleton of the page or localized text, and have your failure view call `retry()`. A refresh that fails needs no `showFailure`: call `done`, and the page keeps what it shows.
 
+### Impressions
+
+An item can carry `tracking`, whatever your analytics need to count it, such as an ad's id; the library hands it over without reading it:
+
+```json
+{ "id": "p1", "template": "product", "data": { … }, "tracking": { "slot": 3, "campaign": "fall" } }
+```
+
+```swift
+controller.onImpression = { item in
+    analytics.impression(item.tracking)
+}
+```
+
+The page calls `onImpression` once for each item with `tracking` the user has seen: at least half of it on screen for half a second without a break, while the page is in a window. Set `impressionFraction` and `impressionDuration` to count differently. An item is reported once per document; after `setDocument`, again, and a patch that replaces an item does not report it again. Actions see `tracking` too, in `context.item`, for counting taps with an action of your own. Releases before 0.6.0 ignore `tracking`.
+
 ## Your own components
 
 Register a type with what it accepts and how it builds its view:
@@ -391,6 +407,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
 | 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
 | 4 | 0.5.0 | `more` on a section; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
+| 5 | 0.6.0 | `tracking` on an item |
 
 Send it with your requests, so that the backend writes what the app reads:
 

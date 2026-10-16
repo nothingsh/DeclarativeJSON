@@ -292,7 +292,7 @@ final class ListTests: XCTestCase {
                 "row": { "type": "button", "title": "Row", "onTap": { "action": "record" } }
               },
               "sections": [ { "id": "\(section)", "header": { "template": "title" },
-                "items": [ { "id": "\(item)", "template": "row" } ] } ] }
+                "items": [ { "id": "\(item)", "template": "row", "tracking": { "slot": 1 } } ] } ] }
             """
         }
         let controller = try show(page("s", "a"), actions: actions)
@@ -310,7 +310,7 @@ final class ListTests: XCTestCase {
         header.fire(.touchUpInside)
 
         XCTAssertEqual(contexts.map(\.item), [
-            ItemInfo(id: "b", section: "t", template: "row"),
+            ItemInfo(id: "b", section: "t", template: "row", tracking: .object(["slot": .number(1)])),
             ItemInfo(id: nil, section: "t", template: "title"),
         ])
         XCTAssertEqual(contexts.map(\.item.isHeader), [false, true])
@@ -607,6 +607,93 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(made.states, ["loading", "failed", "loading"])
         // The default view it showed before is gone.
         XCTAssertEqual(footer(controller)?.subviews.map { $0 is Footer }, [true])
+    }
+
+    /// Shows a page in a window, without insets, so that what shows is its
+    /// bounds.
+    private func showInWindow(_ controller: DocumentViewController, size: CGSize) -> UIWindow {
+        let window = UIWindow(frame: CGRect(origin: .zero, size: size))
+        controller.collectionView.contentInsetAdjustmentBehavior = .never
+        window.rootViewController = controller
+        window.isHidden = false
+        controller.view.layoutIfNeeded()
+        return window
+    }
+
+    private func wait(_ seconds: TimeInterval) {
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: seconds))
+    }
+
+    func testAnItemWithTrackingIsReportedOnceWhenHalfOfItHasShownLongEnough() throws {
+        // Item 1 has no tracking.
+        let items = (0..<20).map {
+            $0 == 1 ? #"{ "id": "1", "template": "row" }"# : #"{ "id": "\#($0)", "template": "row", "tracking": "t\#($0)" }"#
+        }
+        let json = """
+        { "v": 1, "templates": { "row": { "type": "label", "height": 100 } },
+          "sections": [ { "id": "s", "items": [ \(items.joined(separator: ",")) ] } ] }
+        """
+        let controller = try show(json)
+        var reported: [ItemInfo] = []
+        controller.impressionDuration = 0.1
+        controller.onImpression = { reported.append($0) }
+        func tracking() -> [JSONValue?] { reported.map(\.tracking) }
+        wait(0.2)
+        XCTAssertEqual(reported, [], "not in a window")
+
+        // Items 0 to 3 show whole, and 30 points of item 4.
+        let window = showInWindow(controller, size: CGSize(width: 320, height: 430))
+        let collectionView = controller.collectionView
+        wait(0.3)
+        XCTAssertEqual(tracking(), [.string("t0"), .string("t2"), .string("t3")])
+        XCTAssertEqual(reported.first, ItemInfo(id: "0", section: "s", template: "row", tracking: .string("t0")))
+
+        // Shows item 6 for less than the duration.
+        collectionView.contentOffset.y = 300
+        collectionView.layoutIfNeeded()
+        collectionView.contentOffset.y = 0
+        collectionView.layoutIfNeeded()
+        wait(0.3)
+        XCTAssertEqual(reported.count, 3)
+
+        collectionView.contentOffset.y = 200
+        collectionView.layoutIfNeeded()
+        wait(0.3)
+        collectionView.contentOffset.y = 0
+        collectionView.layoutIfNeeded()
+        wait(0.3)
+        XCTAssertEqual(tracking(), [.string("t0"), .string("t2"), .string("t3"), .string("t4"), .string("t5")])
+
+        controller.setDocument(try document(json), animatingDifferences: false)
+        controller.view.layoutIfNeeded()
+        wait(0.3)
+        XCTAssertEqual(tracking().suffix(3), [.string("t0"), .string("t2"), .string("t3")])
+        XCTAssertEqual(reported.count, 8)
+        window.isHidden = true
+    }
+
+    func testACarouselItemIsReportedWhenTheCarouselScrollsItIntoView() throws {
+        let controller = try show("""
+        { "v": 1, "templates": { "card": { "type": "label", "width": 200, "height": 60 } },
+          "sections": [ { "id": "picks", "layout": "carousel", "items": [
+            { "id": "a", "template": "card", "tracking": "a" },
+            { "id": "b", "template": "card", "tracking": "b" },
+            { "id": "c", "template": "card", "tracking": "c" } ] } ] }
+        """)
+        var reported: [JSONValue?] = []
+        controller.impressionDuration = 0.1
+        controller.onImpression = { reported.append($0.tracking) }
+        // 120 of the 200 points of b show.
+        let window = showInWindow(controller, size: CGSize(width: 320, height: 480))
+        wait(0.3)
+        XCTAssertEqual(reported, [.string("a"), .string("b")])
+
+        let carousel = try XCTUnwrap(controller.collectionView.subviews.lazy.compactMap { $0 as? UIScrollView }.first)
+        carousel.contentOffset.x = 300
+        carousel.layoutIfNeeded()
+        wait(0.3)
+        XCTAssertEqual(reported, [.string("a"), .string("b"), .string("c")])
+        window.isHidden = true
     }
 }
 

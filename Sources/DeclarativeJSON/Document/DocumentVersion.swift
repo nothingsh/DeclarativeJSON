@@ -9,5 +9,5 @@ public enum DocumentVersion {
     /// adds to what a document can say raises it by one; 0 is version 1 as
     /// first released. An app sends it with its requests, so that the backend
     /// writes only what the app reads.
-    public static let minor = 4
+    public static let minor = 5
 }

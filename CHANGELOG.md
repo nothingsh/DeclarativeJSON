@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Impressions: an item's `tracking`, which the library hands to `DocumentViewController.onImpression` once the user has seen the item, at least half of it for half a second by default; `impressionFraction` and `impressionDuration` change that. An item is reported once per document.
+- `ItemInfo.tracking`, so that an action can read the item's `tracking`.
+- `DocumentVersion.minor` 5, for `tracking`.
+
 ## [0.5.0] - 2026-10-16
 
 ### Added
