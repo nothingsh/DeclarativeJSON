@@ -33,8 +33,13 @@
           "onTap": { "action": "toggle", "path": "liked" } },
         { "type": "button", "image": "heart.fill", "tintColor": "systemPink", "accessibilityLabel": "Unlike", "isVisible": "$liked",
           "onTap": { "action": "toggle", "path": "liked" } },
-        { "type": "button", "title": "Add",
-          "onTap": { "action": "addToCart", "name": "$name" } }
+        { "type": "button", "title": "Add", "isHidden": "$adding",
+          "onTap": [
+            { "action": "set", "path": "adding", "value": true },
+            { "action": "addToCart", "name": "$name" },
+            { "action": "set", "path": "adding", "value": false }
+          ] },
+        { "type": "activity", "isAnimating": "$adding" }
       ]
     },
     "link": {

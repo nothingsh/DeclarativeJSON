@@ -48,9 +48,13 @@ final class TemplateHost {
                 // later still goes to after this view shows another.
                 target: { [weak self, weak page] in
                     guard let item = self?.item else { return nil }
-                    return ActionTarget(item: item, page: page) { [weak page] change in
-                        page?.update(item.key, change)
-                    }
+                    return ActionTarget(
+                        item: item,
+                        page: page,
+                        data: { [weak page] in page?.data(item.key) },
+                        update: { [weak page] change in page?.update(item.key, change) },
+                        tasks: page?.tasks
+                    )
                 },
                 report: { [weak page] in page?.report($0) }
             )

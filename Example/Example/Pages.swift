@@ -21,7 +21,9 @@ final class Pages {
         actions.register(.openURL) { context in
             if let url = context.url("url") { UIApplication.shared.open(url) }
         }
+        // Waits as for a request; the document shows a spinner meanwhile.
         actions.register(ActionSpec("addToCart", parameters: ["name": PropertySpec(.string)])) { [weak self] context in
+            try await Task.sleep(nanoseconds: 1_000_000_000)
             self?.showAlert(title: "Added to the cart", message: context.string("name"))
         }
         actions.register(ActionSpec("showProduct", parameters: [

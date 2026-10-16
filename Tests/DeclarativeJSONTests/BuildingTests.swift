@@ -17,7 +17,7 @@ final class BuildingTests: XCTestCase {
         let node = try XCTUnwrap(Node(value, path: "t", issues: &decodeIssues))
         let builder = NodeBuilder(
             components: components, actions: .standard, data: data, target: { [data] in
-                ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), page: nil) { change in
+                ActionTarget(item: ItemInfo(id: "a", section: "s", template: "t"), data: { data.value }) { change in
                     var changed = data.value
                     change(&changed)
                     data.send(changed)

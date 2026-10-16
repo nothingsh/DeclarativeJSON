@@ -6,7 +6,7 @@ import Foundation
 /// ```json
 /// {
 ///   "v": 1,
-///   "minor": 1,
+///   "minor": 3,
 ///   "common": { "alpha": { "type": "number", "reference": true }, … },
 ///   "components": {
 ///     "button": {
@@ -16,13 +16,14 @@ import Foundation
 ///     }
 ///   },
 ///   "actions": {
-///     "navigate": { "parameters": { "url": { "type": "url", "reference": true } } }
+///     "navigate": { "async": false, "parameters": { "url": { "type": "url", "reference": true } } }
 ///   }
 /// }
 /// ```
 ///
 /// `v` and `minor` are those of `DocumentVersion`. `common` lists the
-/// properties every component accepts besides its own.
+/// properties every component accepts besides its own. An action with
+/// `async` takes `onSuccess` and `onFailure` besides its parameters.
 /// `reference` tells whether the value can be a `$` reference. A type is one
 /// of `number`, `integer`, `bool`, `string`, `url`, `color`, `font`,
 /// `insets`, `oneOf` with its `values`, `object` with the type of each of
@@ -60,7 +61,7 @@ public struct Manifest {
         }
         var actions: [String: JSONValue] = [:]
         for spec in self.actions {
-            actions[spec.name] = .object(["parameters": Self.json(spec.parameters)])
+            actions[spec.name] = .object(["async": .bool(spec.isAsync), "parameters": Self.json(spec.parameters)])
         }
         return .object([
             "v": .number(Double(DocumentVersion.current)),

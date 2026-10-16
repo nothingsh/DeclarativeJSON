@@ -213,16 +213,26 @@ actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) {
 }
 ```
 
-`update` 也可以在处理闭包返回之后调用，比如请求完成时。改动仍然落到触发动作的那个条目上，即使它的 cell 此时已经在显示别的条目；改动作用在条目当时的数据上。页面里已经没有这个条目时（比如 `setDocument` 之后），什么也不改。
+动作可以等待，比如等一个请求。用了 `await` 或 `try` 的处理闭包是异步的：抛错即失败。异步动作接受 `onSuccess` 与 `onFailure`，值是一个动作或动作数组，在处理闭包返回或抛错时执行；数组里排在它后面的动作，等它和它的 `onSuccess` 或 `onFailure` 执行完才执行。先改数据，请求失败再改回来：
+
+```json
+"onTap": [
+  { "action": "toggle", "path": "liked" },
+  { "action": "like", "id": "$id", "onFailure": { "action": "toggle", "path": "liked" } }
+]
+```
 
 ```swift
 actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
-    Task {
-        let liked = await api.like(context.string("id"))
-        context.update { $0["liked"] = .bool(liked) }
-    }
+    // 抛错时执行 onFailure。
+    let count = try await api.like(context.string("id"))
+    context.update { $0["likes"] = .number(Double(count)) }
 }
 ```
+
+`update` 在处理闭包等待期间和返回之后都可以调用。改动仍然落到触发动作的那个条目上，即使它的 cell 此时已经在显示别的条目；改动作用在条目当时的数据上，等待之后执行的动作读的也是这份数据。页面里已经没有这个条目时（比如 `setDocument` 之后），什么也不改，这些动作也不执行。页面释放时，处理闭包的任务会被取消。
+
+其他动作把 `onSuccess` 与 `onFailure` 当作未知属性上报，0.4.0 之前的版本也是如此。manifest 用 `async` 标出异步动作。
 
 ## 页面
 
@@ -289,6 +299,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 0 | 0.1.0 | 第 1 版 |
 | 1 | 0.2.0 | `vstack` 和 `hstack` 的 `onTap`；`fallback` |
 | 2 | 0.3.0 | `overlay`；`grid` 布局；`vstack` 与 `hstack` 的 `highlight` |
+| 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure` |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
@@ -304,7 +315,7 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清单
 
-[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作和它们的参数，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
+[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

@@ -213,16 +213,26 @@ actions.register(ActionSpec("share", parameters: ["url": PropertySpec(.url)])) {
 }
 ```
 
-`update` also works after the handler returns, when a request finishes for example. The change goes to the item the action ran for, even when its cell shows another item by then, and applies to the item's data as it is at that time. When the page no longer has the item, after `setDocument` for example, nothing changes.
+An action can wait, for a request for example. A handler that uses `await` or `try` is asynchronous: it fails when it throws. An asynchronous action takes `onSuccess` and `onFailure`, an action or a list of actions that run when the handler returns or throws, and the actions after it in the list run once it and its `onSuccess` or `onFailure` are done. Change the data first and undo the change when the request fails:
+
+```json
+"onTap": [
+  { "action": "toggle", "path": "liked" },
+  { "action": "like", "id": "$id", "onFailure": { "action": "toggle", "path": "liked" } }
+]
+```
 
 ```swift
 actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
-    Task {
-        let liked = await api.like(context.string("id"))
-        context.update { $0["liked"] = .bool(liked) }
-    }
+    // Throwing runs onFailure.
+    let count = try await api.like(context.string("id"))
+    context.update { $0["likes"] = .number(Double(count)) }
 }
 ```
+
+`update` works while the handler waits, and after it returns. The change goes to the item the action ran for, even when its cell shows another item by then, and applies to the item's data as it is at that time; the actions that run after a wait read that data too. When the page no longer has the item, after `setDocument` for example, nothing changes and those actions do not run. When the page goes away, the handler's task is cancelled.
+
+Other actions report `onSuccess` and `onFailure` as unknown properties, and so do releases before 0.4.0. The manifest marks asynchronous actions with `async`.
 
 ## The page
 
@@ -289,6 +299,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 0 | 0.1.0 | Version 1 |
 | 1 | 0.2.0 | `onTap` on `vstack` and `hstack`; `fallback` |
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
+| 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions |
 
 Send it with your requests, so that the backend writes what the app reads:
 
@@ -304,7 +315,7 @@ A node can also carry a `fallback`, a node shown instead when the app does not k
 
 ## The manifest
 
-[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
+[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

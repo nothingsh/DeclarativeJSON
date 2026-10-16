@@ -1,6 +1,7 @@
 {
   "actions" : {
     "navigate" : {
+      "async" : false,
       "parameters" : {
         "url" : {
           "reference" : true,
@@ -9,6 +10,7 @@
       }
     },
     "openURL" : {
+      "async" : false,
       "parameters" : {
         "url" : {
           "reference" : true,
@@ -17,6 +19,7 @@
       }
     },
     "set" : {
+      "async" : false,
       "parameters" : {
         "path" : {
           "reference" : false,
@@ -29,6 +32,7 @@
       }
     },
     "toggle" : {
+      "async" : false,
       "parameters" : {
         "path" : {
           "reference" : false,
@@ -520,6 +524,6 @@
       }
     }
   },
-  "minor" : 2,
+  "minor" : 3,
   "v" : 1
 }

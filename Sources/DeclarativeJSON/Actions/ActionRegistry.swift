@@ -4,6 +4,9 @@ import Foundation
 public struct ActionSpec: Equatable, Sendable {
     public let name: String
     public let parameters: [String: PropertySpec]
+    /// Whether the action is registered with an `async` handler, and so takes
+    /// `onSuccess` and `onFailure`.
+    public internal(set) var isAsync = false
 
     public init(_ name: String, parameters: [String: PropertySpec] = [:]) {
         self.name = name
@@ -39,17 +42,46 @@ public struct ActionSpec: Equatable, Sendable {
 /// }
 /// ```
 ///
+/// An action registered with an `async` handler takes `onSuccess` and
+/// `onFailure`, an action or a list of actions that run when the handler
+/// returns or throws:
+///
+/// ```swift
+/// actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) { context in
+///     try await api.like(context.string("id"))
+/// }
+/// ```
+///
 /// Actions run in the app; nothing is sent back to the server. Registering
 /// an action that is already there replaces it.
 public struct ActionRegistry {
     public typealias Perform = @MainActor (ActionContext) -> Void
+    public typealias PerformAsync = @MainActor (ActionContext) async throws -> Void
 
-    private var actions: [String: (spec: ActionSpec, perform: Perform)] = [:]
+    enum Handler {
+        case sync(Perform)
+        case async(PerformAsync)
+    }
+
+    private var actions: [String: (spec: ActionSpec, perform: Handler)] = [:]
 
     public init() {}
 
     public mutating func register(_ spec: ActionSpec, perform: @escaping Perform) {
-        actions[spec.name] = (spec, perform)
+        var spec = spec
+        spec.isAsync = false
+        actions[spec.name] = (spec, .sync(perform))
+    }
+
+    /// Registers an action whose handler can wait, such as for a request; a
+    /// closure that uses `await` or `try` is one. The actions after it run
+    /// when it returns or throws, its `onSuccess` or `onFailure` first. They
+    /// do not run when the page no longer has the item by then, and the task
+    /// is cancelled when the page goes away.
+    public mutating func register(_ spec: ActionSpec, perform: @escaping PerformAsync) {
+        var spec = spec
+        spec.isAsync = true
+        actions[spec.name] = (spec, .async(perform))
     }
 
     /// Every registered action, sorted by name.
@@ -57,7 +89,7 @@ public struct ActionRegistry {
         actions.values.map(\.spec).sorted { $0.name < $1.name }
     }
 
-    func action(_ name: String) -> (spec: ActionSpec, perform: Perform)? {
+    func action(_ name: String) -> (spec: ActionSpec, perform: Handler)? {
         actions[name]
     }
 

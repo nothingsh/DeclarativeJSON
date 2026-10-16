@@ -223,6 +223,40 @@ final class ListTests: XCTestCase {
         XCTAssertEqual(issues, [])
     }
 
+    func testAnAsyncActionIsCancelledWhenThePageGoesAwayAndTheActionsAfterItDoNotRun() async throws {
+        var cancelled = false
+        var recorded = 0
+        var actions = ActionRegistry.standard
+        actions.register(ActionSpec("record")) { _ in recorded += 1 }
+        actions.register(ActionSpec("wait")) { _ in
+            do {
+                try await Task.sleep(nanoseconds: 60_000_000_000)
+            } catch {
+                cancelled = error is CancellationError
+                throw error
+            }
+        }
+        weak var page: DocumentViewController?
+        try autoreleasepool {
+            let controller = try show("""
+            { "v": 1,
+              "templates": { "row": { "type": "button", "title": "Like", "onTap": [
+                { "action": "wait", "onFailure": { "action": "record" } }, { "action": "record" }
+              ]}},
+              "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ] }
+            """, actions: actions)
+            page = controller
+            views(UIButton.self, in: cell(controller, 0)).first?.fire(.touchUpInside)
+        }
+        XCTAssertNil(page)
+
+        for _ in 0..<100 where !cancelled {
+            await Task.yield()
+        }
+        XCTAssertTrue(cancelled)
+        XCTAssertEqual(recorded, 0)
+    }
+
     func testAnActionInAHeaderChangesTheHeadersData() throws {
         let controller = try show("""
         { "v": 1,
