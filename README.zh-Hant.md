@@ -57,6 +57,7 @@ controller.onIssue = { print($0) }
 - [文件](#文件)
 - [引用](#引用)
 - [元件](#元件)
+- [版面配置](#版面配置)
 - [取值](#取值)
 - [事件與動作](#事件與動作)
 - [頁面](#頁面)
@@ -143,7 +144,7 @@ dependencies: [
 | `progress` | `progress`、`progressTintColor`、`trackTintColor` | |
 | `activity` | `isAnimating`、`hidesWhenStopped`、`color` | |
 
-每個元件還接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
+每個元件還接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`layoutPriority`、`accessibilityLabel` 和 `accessibilityIdentifier`。
 
 - `image` 與 `button` 的 `image` 是[主題](#主題)裡的圖片名稱，主題裡沒有時在 App 的 asset catalog 裡找，再找不到時當作 SF Symbol。`image` 同時有 `url` 時，它一直顯示到 URL 的圖片載入完成。
 - 不是 stack 也不是捲動視圖的視圖設了 `padding`，會被放進一個帶該內距的 stack。除了輔助使用屬性，其餘通用屬性都作用在這個 stack 上，所以背景會蓋住內距。
@@ -170,6 +171,23 @@ dependencies: [
   ```
 - `label` 的 `lineHeight` 設定每行的高度，文字在行內垂直置中。它和字型一樣隨系統字級縮放。
 - `textfield` 有圓角邊框。`label` 與 `textfield` 會跟著動態字級調整。
+
+## 版面配置
+
+stack 依序排列子節點，間隔 `spacing`：
+
+- 多出的空間由會伸展的子節點平分：`spacer`，沒寫 `width` 的 `textfield`、`slider`、`progress`，以及含有它們的 stack。沒有這樣的子節點時，空間留在最後一個子節點之後；要把空間放在別處，例如末端的箭頭之前，就在那裡放一個 `spacer`。
+- 空間不夠時，先把 spacer 壓到 `minLength`，再依 `layoutPriority`（預設 0）壓縮其他子節點：低的先壓縮，相同時靠前的先壓縮。標題在價格前面時標題先被壓縮、價格保持完整；要讓標題完整，就給它更高的 `layoutPriority`。寫了 `width` 或 `height` 的子節點維持該尺寸。
+
+```json
+{ "type": "hstack", "spacing": 8, "children": [
+  { "type": "label", "text": "$title" },
+  { "type": "spacer" },
+  { "type": "label", "text": "$price", "layoutPriority": 1 }
+]}
+```
+
+`layoutPriority` 只接受常數。0.7.0 之前的版本會忽略它，並且在有多餘空間又沒有 spacer 時拉伸第一個能拉伸的子節點。
 
 ## 取值
 
@@ -443,6 +461,7 @@ App 停在建置時的版本，所以後端寫的文件也要讓舊版本讀得�
 | 3 | 0.4.0 | 非同步動作的 `onSuccess` 與 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；顏色 `systemMint`、`systemCyan`、`systemBrown` |
 | 5 | 0.6.0 | 項目的 `tracking`；`label` 的 `markdown` 與 `lineHeight`；`repeat` |
+| 6 | 0.7.0 | `layoutPriority`；[版面配置規則](#版面配置) |
 
 請求時帶上它，後端就只寫 App 讀得懂的內容：
 

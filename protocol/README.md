@@ -206,8 +206,9 @@ These properties are accepted on Android but have no effect, and report nothing:
 
 ## Common properties
 
-Every component takes `width`, `height`, `aspectRatio` (width over height, greater than 0), `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border` (`{ "color": color, "width": length }`, both required), `alpha` (0 transparent, 1 opaque), `tintColor`, `overlay`, `isHidden`, `isVisible`, `accessibilityLabel` and `accessibilityIdentifier`.
+Every component takes `width`, `height`, `aspectRatio` (width over height, greater than 0), `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border` (`{ "color": color, "width": length }`, both required), `alpha` (0 transparent, 1 opaque), `tintColor`, `overlay`, `isHidden`, `isVisible`, `layoutPriority`, `accessibilityLabel` and `accessibilityIdentifier`.
 
+- **`layoutPriority`** decides which children of a stack give way first when it runs out of space; see [Layout](#layout).
 - **`padding`** is inside the background, the corners, the border, `width` and `height`. The accessibility properties apply to the content.
 - **`tintColor`** passes down to the descendants that do not set their own.
 - **`isHidden`** and **`isVisible`**: the view is hidden when `isHidden` is `true` or `isVisible` is `false`. A hidden view takes no space in a stack.
@@ -225,13 +226,18 @@ Every component takes `width`, `height`, `aspectRatio` (width over height, great
 
 ## Layout
 
-> **Draft.** These rules describe what the iOS renderer does today. They become binding, with relational cases in the shared cases, when the Android renderer is designed; where they leave room, iOS is the reference.
+Every renderer lays out a stack by these rules, so that a template keeps its structure on each platform. The [shared cases](cases/layout.json) check them by relations, such as which child gives way, rather than by sizes, since fonts differ.
 
-- **Main axis.** Children are laid out in order, `spacing` apart. Extra space goes to the `spacer`s, shared equally, none shorter than its `minLength`. A hidden child takes no space and no spacing.
-- **Not enough space.** The `spacer`s shrink to their `minLength` first, then the other children. A child with `width` or `height` keeps it. Text that is squeezed wraps up to `numberOfLines` and then ends with an ellipsis. Which of several children gives way first will be set by a `layoutPriority` property, still to come; documents should not rely on the order until then.
-- **Cross axis.** Children are placed by `alignment`; `fill` stretches them to the container's size across. A stack is as large across as its largest child.
-- **Size.** A view is as large as its content unless `width`, `height` or `aspectRatio` set it. A cell in a `list` and a header are as wide as the page; a cell in a `carousel` is as wide as its content; a cell in a `grid` is as wide as its column. All are as tall as their content.
-- **Scrolling containers** (`vscroll`, `hscroll`) scroll their content along their axis.
+- **Main axis.** Children are laid out in order, `spacing` apart. A hidden child takes no space and no spacing.
+- **Extra space** goes to the children that grow, shared equally: a `spacer`; a `textfield`, `slider` or `progress` without a `width`; and a stack with one of them along that axis. Without any, it is left after the last child, and the children keep their own size.
+- **Not enough space.** The `spacer`s shrink to their `minLength` first. Then children give way by `layoutPriority`, a number, 0 by default: the lowest first, and of the same priority, the earliest first. A child gives way as far as it has to, to nothing if needed, before the next one does. A nested stack gives way as one child, and among its own children by the same rule. A child with a `width` or `height` keeps it. Text that is squeezed wraps up to `numberOfLines` and then ends with an ellipsis.
+- **Cross axis.** Children are placed by `alignment`; `fill` stretches them to the stack's size across. A child that grows across, such as a `slider` in a `vstack`, takes the stack's size across too. A stack is as large across as its largest child.
+- **Size.** A view is as large as its content unless `width`, `height` or `aspectRatio` set it. A stack is as large as its content unless something in it grows or the stack it is in stretches it. A cell in a `list` and a header are as wide as the page; a cell in a `carousel` is as wide as its content; a cell in a `grid` is as wide as its column. All are as tall as their content.
+- **Scrolling containers** (`vscroll`, `hscroll`) scroll their content along their axis, which has no extra space and never runs out of it.
+
+`layoutPriority` takes only a constant.
+
+In Compose, a renderer measures the children of a `Row` or `Column` with a custom `Layout`: the spacers' `minLength` first, then the other children from the highest priority to the lowest and, of the same priority, from the last to the first, each with the space that is left; the children that grow share what remains, as with `Modifier.weight`. A `textfield`, `slider` or `progress` without a `width` fills the width it is given.
 
 ## Events and actions
 
@@ -385,6 +391,7 @@ An app keeps the release of the renderer it was built with for a long time, so a
 | 3 | `onSuccess` and `onFailure`; patches |
 | 4 | `more`; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
 | 5 | `tracking`; `markdown` and `lineHeight` on `label`; `repeat` |
+| 6 | `layoutPriority`; the layout rules |
 
 ## The manifest
 

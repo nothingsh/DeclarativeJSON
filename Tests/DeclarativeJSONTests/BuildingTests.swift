@@ -58,7 +58,7 @@ final class BuildingTests: XCTestCase {
         ]}
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.arrangedSubviews.map { ($0 as? UILabel)?.text }, ["4.5", "No chart", "Known"])
+        XCTAssertEqual(stack.contentViews.map { ($0 as? UILabel)?.text }, ["4.5", "No chart", "Known"])
         XCTAssertEqual(issues, [
             Issue(.unknownType("rating"), at: "t.children[0]"),
             Issue(.unknownType("chart"), at: "t.children[1]"),
@@ -106,7 +106,7 @@ final class BuildingTests: XCTestCase {
         ]}
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.arrangedSubviews.count, 3)
+        XCTAssertEqual(stack.contentViews.count, 3)
         XCTAssertEqual(String(describing: type(of: stack.arrangedSubviews[0])), "UIView")
         XCTAssertEqual((stack.arrangedSubviews[1] as? UILabel)?.text, "Hi")
         XCTAssertEqual(issues, [
@@ -244,10 +244,14 @@ final class BuildingTests: XCTestCase {
 
         XCTAssertEqual(wrapper.directionalLayoutMargins, NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 0, trailing: 8))
         XCTAssertEqual(label.accessibilityLabel, "Name")
-        XCTAssertEqual(wrapper.constraints.first { $0.firstAttribute == .width && $0.isActive }?.constant, 120)
+        // Besides the stack's hugging, which the layout rules add.
+        func widths() -> [NSLayoutConstraint] {
+            wrapper.constraints.filter { $0.firstAttribute == .width && $0.isActive && $0.priority == .required }
+        }
+        XCTAssertEqual(widths().map(\.constant), [120])
 
         data.send([:])
-        XCTAssertFalse(wrapper.constraints.contains { $0.firstAttribute == .width && $0.isActive })
+        XCTAssertEqual(widths(), [])
     }
 
     func testOverlaysSitInFrontOfTheViewAtTheirAlignmentAndFollowTheItemData() throws {
@@ -435,7 +439,7 @@ final class BuildingTests: XCTestCase {
     }
 
     private func texts(_ stack: UIStackView) -> [String?] {
-        stack.arrangedSubviews.filter { !$0.isHidden }.map { ($0 as? UILabel)?.text }
+        stack.contentViews.filter { !$0.isHidden }.map { ($0 as? UILabel)?.text }
     }
 
     func testARepeatPutsASubtreeForEachElementAmongItsSiblingsAndFollowsTheArray() throws {
@@ -521,6 +525,28 @@ final class BuildingTests: XCTestCase {
         XCTAssertEqual(Set(issues), [Issue(.unsupportedAction("toggle"), at: "t.children[0].template.onTap[1]")])
     }
 
+    func testTheSubtreesOfARepeatGiveWayByTheirLayoutPriority() throws {
+        data.send(["tags": .array([])])
+        let stack = try XCTUnwrap(try build("""
+        { "type": "hstack", "children": [
+          { "type": "label", "text": "Bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
+          { "type": "repeat", "items": "$tags",
+            "template": { "type": "label", "text": "$value", "layoutPriority": -1 } }
+        ]}
+        """) as? UIStackView)
+        let host = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 100))
+        host.addContent(stack)
+
+        // Added after the stack was built.
+        data.send(["tags": .array([.string("Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")])])
+        host.layoutIfNeeded()
+
+        let views = stack.contentViews.filter { !$0.isHidden }
+        XCTAssertEqual(views.map { ($0 as? UILabel)?.text?.prefix(1) }, ["B", "A"])
+        XCTAssertEqual(views[0].frame.width, 200, accuracy: 0.5)
+        XCTAssertEqual(views[1].frame.width, 0, accuracy: 0.5)
+    }
+
     func testARepeatThatCannotShowIsReportedAndLeftOut() throws {
         let stack = try XCTUnwrap(try build("""
         { "type": "vstack", "children": [
@@ -531,7 +557,7 @@ final class BuildingTests: XCTestCase {
         ]}
         """) as? UIStackView)
 
-        XCTAssertEqual(stack.arrangedSubviews.filter { !$0.isHidden }.count, 1)
+        XCTAssertEqual(stack.contentViews.filter { !$0.isHidden }.count, 1)
         XCTAssertEqual(issues, [
             Issue(.unexpectedRepeat, at: "t.children[0].overlay.content"),
             Issue(.unknownProperty("padding"), at: "t.children[1]"),

@@ -275,6 +275,79 @@ final class ProtocolCaseTests: XCTestCase {
         }
     }
 
+    // MARK: - Layout
+
+    /// The view at `path`, such as `children[0].children[1]`, under `root`,
+    /// and the stack it is in.
+    private func view(at path: String, in root: UIView) -> (view: UIView, stack: UIStackView)? {
+        var view = root
+        var stack: UIStackView?
+        for step in path.split(separator: ".") {
+            guard step.hasPrefix("children["), step.hasSuffix("]"),
+                  let index = Int(step.dropFirst("children[".count).dropLast()),
+                  let parent = view as? UIStackView, parent.contentViews.indices.contains(index) else { return nil }
+            stack = parent
+            view = parent.contentViews[index]
+        }
+        return stack.map { (view, $0) }
+    }
+
+    func testLayoutCases() throws {
+        for fields in try cases("layout") {
+            let name = name(fields)
+            var nodeIssues: [Issue] = []
+            let node = try XCTUnwrap(Node(fields["node"] ?? .null, path: "t", issues: &nodeIssues), name)
+            guard case .number(let width)? = fields["width"] else { return XCTFail("\(name): no width") }
+            let builder = NodeBuilder(
+                components: .standard, actions: .standard, data: .init([:]), target: { nil }, report: { _ in }
+            )
+            // As a cell of a list: as wide as the page, as tall as its content.
+            let root = builder.build(node, path: "t")
+            let host = UIView(frame: CGRect(x: 0, y: 0, width: width, height: 1000))
+            host.addSubview(root)
+            root.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                root.leadingAnchor.constraint(equalTo: host.leadingAnchor),
+                root.trailingAnchor.constraint(equalTo: host.trailingAnchor),
+                root.topAnchor.constraint(equalTo: host.topAnchor),
+            ])
+            host.layoutIfNeeded()
+
+            guard case .array(let expected)? = fields["expect"] else { return XCTFail("\(name): no expect") }
+            for case .object(let fact) in expected {
+                guard case .string(let path)? = fact["at"], let (view, stack) = self.view(at: path, in: root) else {
+                    XCTFail("\(name): no view at \(fact["at"].map(text) ?? "?")")
+                    continue
+                }
+                // What Auto Layout lines up, which for a slider on iOS 15 is
+                // inside its frame.
+                let frame = view.convert(view.bounds.inset(by: view.alignmentRectInsets), to: root)
+                let horizontal = stack.axis == .horizontal
+                let length = horizontal ? frame.width : frame.height
+                if case .string(let state)? = fact["is"] {
+                    let fitting = view.systemLayoutSizeFitting(
+                        UIView.layoutFittingCompressedSize,
+                        withHorizontalFittingPriority: .fittingSizeLevel,
+                        verticalFittingPriority: .fittingSizeLevel
+                    )
+                    let natural = horizontal ? fitting.width : fitting.height
+                    let actual = length <= 0.5 ? "collapsed" : length >= natural - 0.5 ? "whole" : "shrunk"
+                    XCTAssertEqual(actual, state, "\(name): \(path) is \(length) long, \(natural) on its own")
+                }
+                if case .number(let expected)? = fact["width"] {
+                    XCTAssertEqual(frame.width, CGFloat(expected), accuracy: 0.5, "\(name): width of \(path)")
+                }
+                if case .number(let expected)? = fact["height"] {
+                    XCTAssertEqual(frame.height, CGFloat(expected), accuracy: 0.5, "\(name): height of \(path)")
+                }
+                if case .bool(let atEnd)? = fact["atEnd"] {
+                    let end = horizontal ? root.bounds.maxX - frame.maxX : root.bounds.maxY - frame.maxY
+                    XCTAssertEqual(abs(end) <= 0.5, atEnd, "\(name): \(path) ends \(end) before the end")
+                }
+            }
+        }
+    }
+
     // MARK: - Patches
 
     func testPatchCases() throws {

@@ -57,6 +57,7 @@ controller.onIssue = { print($0) }
 - [文档](#文档)
 - [引用](#引用)
 - [组件](#组件)
+- [布局](#布局)
 - [取值](#取值)
 - [事件与动作](#事件与动作)
 - [页面](#页面)
@@ -143,7 +144,7 @@ dependencies: [
 | `progress` | `progress`、`progressTintColor`、`trackTintColor` | |
 | `activity` | `isAnimating`、`hidesWhenStopped`、`color` | |
 
-每个组件还接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`accessibilityLabel` 和 `accessibilityIdentifier`。
+每个组件还接受 `width`、`height`、`aspectRatio`、`padding`、`background`、`cornerRadius`、`clipsToBounds`、`border`、`alpha`、`tintColor`、`overlay`、`isHidden`、`isVisible`、`layoutPriority`、`accessibilityLabel` 和 `accessibilityIdentifier`。
 
 - `image` 与 `button` 的 `image` 是[主题](#主题)里的图片名，主题里没有时在 App 的 asset catalog 里找，再找不到时按 SF Symbol 处理。`image` 同时有 `url` 时，它一直显示到 URL 的图片加载完成。
 - 不是 stack 也不是滚动视图的视图设了 `padding`，会被放进一个带该内边距的 stack。除无障碍属性外，其余通用属性都作用在这个 stack 上，所以背景会覆盖内边距。
@@ -170,6 +171,23 @@ dependencies: [
   ```
 - `label` 的 `lineHeight` 设定每行的高度，文字在行内垂直居中。它和字体一样随系统字号缩放。
 - `textfield` 带圆角边框。`label` 与 `textfield` 跟随动态字体。
+
+## 布局
+
+stack 按顺序排列子节点，间隔 `spacing`：
+
+- 多出的空间由会伸展的子节点平分：`spacer`，没写 `width` 的 `textfield`、`slider`、`progress`，以及含有它们的 stack。没有这样的子节点时，空间留在最后一个子节点之后；要把空间放在别处，例如末尾的箭头之前，就在那里放一个 `spacer`。
+- 空间不够时，先把 spacer 压到 `minLength`，再按 `layoutPriority`（默认 0）压缩其他子节点：低的先压缩，相同时靠前的先压缩。标题在价格前面时标题先被压缩、价格保持完整；要让标题完整，就给它更高的 `layoutPriority`。写了 `width` 或 `height` 的子节点保持该尺寸。
+
+```json
+{ "type": "hstack", "spacing": 8, "children": [
+  { "type": "label", "text": "$title" },
+  { "type": "spacer" },
+  { "type": "label", "text": "$price", "layoutPriority": 1 }
+]}
+```
+
+`layoutPriority` 只接受常量。0.7.0 之前的版本会忽略它，并且在有多余空间又没有 spacer 时拉伸第一个能拉伸的子节点。
 
 ## 取值
 
@@ -443,6 +461,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；颜色 `systemMint`、`systemCyan`、`systemBrown` |
 | 5 | 0.6.0 | 条目的 `tracking`；`label` 的 `markdown` 与 `lineHeight`；`repeat` |
+| 6 | 0.7.0 | `layoutPriority`；[布局规则](#布局) |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 

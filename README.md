@@ -57,6 +57,7 @@ A `$` value refers to a key of the item's `data`; everything else is a constant.
 - [Documents](#documents)
 - [References](#references)
 - [Components](#components)
+- [Layout](#layout)
 - [Values](#values)
 - [Events and actions](#events-and-actions)
 - [The page](#the-page)
@@ -143,7 +144,7 @@ The property names are those of the DeclarativeUIKit modifiers that set them. A 
 | `progress` | `progress`, `progressTintColor`, `trackTintColor` | |
 | `activity` | `isAnimating`, `hidesWhenStopped`, `color` | |
 
-Every component also takes `width`, `height`, `aspectRatio`, `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border`, `alpha`, `tintColor`, `overlay`, `isHidden`, `isVisible`, `accessibilityLabel` and `accessibilityIdentifier`.
+Every component also takes `width`, `height`, `aspectRatio`, `padding`, `background`, `cornerRadius`, `clipsToBounds`, `border`, `alpha`, `tintColor`, `overlay`, `isHidden`, `isVisible`, `layoutPriority`, `accessibilityLabel` and `accessibilityIdentifier`.
 
 - `image` on an `image` or a `button` names an image in the [theme](#themes), or else in the app's asset catalog, or else an SF Symbol. On an `image` with a `url`, it shows until the URL's image has loaded.
 - `padding` on a view that is not a stack or a scroll view puts it in a stack with that padding. The other common properties, except the accessibility ones, then apply to that stack, so a background covers the padding.
@@ -170,6 +171,23 @@ Every component also takes `width`, `height`, `aspectRatio`, `padding`, `backgro
   ```
 - `lineHeight` on a `label` sets the height of each line, with the text in the middle of it. It grows with the text size, as fonts do.
 - A `textfield` has a rounded border. `label` and `textfield` follow Dynamic Type.
+
+## Layout
+
+A stack lays out its children in order, `spacing` apart:
+
+- Extra space goes to the children that grow, shared equally: a `spacer`, a `textfield`, `slider` or `progress` without a `width`, and a stack with one of them. Without any, it is left after the last child, so put a `spacer` where the space should go, such as before a trailing chevron.
+- When there is not enough space, the spacers shrink to their `minLength` first. Then the children give way by `layoutPriority`, 0 by default: the lowest first, and of the same priority, the earliest. A title before a price gives way and the price stays whole; give the title a higher `layoutPriority` to keep it whole instead. A child with a `width` or `height` keeps it.
+
+```json
+{ "type": "hstack", "spacing": 8, "children": [
+  { "type": "label", "text": "$title" },
+  { "type": "spacer" },
+  { "type": "label", "text": "$price", "layoutPriority": 1 }
+]}
+```
+
+`layoutPriority` takes only a constant. Releases before 0.7.0 ignore it, and stretch the first child that can grow when there is extra space and no spacer.
 
 ## Values
 
@@ -443,6 +461,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
 | 4 | 0.5.0 | `more` on a section; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
 | 5 | 0.6.0 | `tracking` on an item; `markdown` and `lineHeight` on `label`; `repeat` |
+| 6 | 0.7.0 | `layoutPriority`; the [layout rules](#layout) |
 
 Send it with your requests, so that the backend writes what the app reads:
 
