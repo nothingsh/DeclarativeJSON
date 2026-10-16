@@ -133,7 +133,7 @@ The property names are those of the DeclarativeUIKit modifiers that set them. A 
 | `hstack` | `alignment` (`top`, `center`, `bottom`, `firstTextBaseline`, `lastTextBaseline`, `fill`), `spacing`, `highlight` | `onTap` |
 | `vscroll`, `hscroll` | `alignment` and `spacing` as on `vstack` and `hstack`, and `showsIndicators`, `bounces` | |
 | `spacer` | `minLength`, constant only | |
-| `label` | `text`, `font`, `textColor`, `numberOfLines`, `textAlignment`, `adjustsFontSizeToFitWidth` | |
+| `label` | `text`, `markdown`, `font`, `textColor`, `numberOfLines`, `textAlignment`, `lineHeight`, `adjustsFontSizeToFitWidth` | |
 | `image` | `url`, `image`, `contentMode` (`scaleToFill`, `scaleAspectFit`, `scaleAspectFill`, `center`) | |
 | `button` | `title`, `titleColor`, `image`, `isEnabled` | `onTap` |
 | `textfield` | `text`, `placeholder`, `font`, `textColor`, `textAlignment`, `keyboardType`, `returnKeyType`, `isSecureTextEntry`, `isEnabled` | `onChange`, `onReturn` |
@@ -154,6 +154,11 @@ Every component also takes `width`, `height`, `aspectRatio`, `padding`, `backgro
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
+- `markdown` on a `label` shows inline Markdown instead of `text`: `**bold**`, `*italic*`, `~~strikethrough~~` and `` `code` ``, in the label's font and color. A link or an image shows its text and cannot be tapped; headings, lists and other block syntax, and line breaks, stay as written. Keep `text` as plain text for releases before 0.6.0, which ignore `markdown`:
+  ```json
+  { "type": "label", "text": "Now ¥99, was ¥129", "markdown": "**Now ¥99** ~~¥129~~" }
+  ```
+- `lineHeight` on a `label` sets the height of each line, with the text in the middle of it. It grows with the text size, as fonts do.
 - A `textfield` has a rounded border. `label` and `textfield` follow Dynamic Type.
 
 ## Values
@@ -407,7 +412,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
 | 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
 | 4 | 0.5.0 | `more` on a section; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
-| 5 | 0.6.0 | `tracking` on an item |
+| 5 | 0.6.0 | `tracking` on an item; `markdown` and `lineHeight` on `label` |
 
 Send it with your requests, so that the backend writes what the app reads:
 

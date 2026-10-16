@@ -41,6 +41,9 @@ extension ComponentSpec {
         ]),
         ComponentSpec("label", properties: [
             "text": PropertySpec(.string),
+            // Inline Markdown, shown instead of `text`.
+            "markdown": PropertySpec(.string),
+            "lineHeight": PropertySpec(.number),
             "font": PropertySpec(.font),
             "textColor": PropertySpec(.color),
             "numberOfLines": PropertySpec(.integer),

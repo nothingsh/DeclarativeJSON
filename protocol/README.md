@@ -140,7 +140,7 @@ A renderer has these components. An app can register more, which its manifest li
 | `hstack` | `alignment` (`top`, `center`, `bottom`, `firstTextBaseline`, `lastTextBaseline`, `fill`), `spacing`, `highlight` | `onTap` |
 | `vscroll`, `hscroll` | `alignment` and `spacing` as on `vstack` and `hstack`; `showsIndicators`, `bounces` | |
 | `spacer` | `minLength`, constant only | |
-| `label` | `text`, `font`, `textColor`, `numberOfLines`, `textAlignment` (`natural`, `left`, `center`, `right`, `justified`), `adjustsFontSizeToFitWidth` | |
+| `label` | `text`, `markdown`, `font`, `textColor`, `numberOfLines`, `textAlignment` (`natural`, `left`, `center`, `right`, `justified`), `lineHeight`, `adjustsFontSizeToFitWidth` | |
 | `image` | `url`, `image`, `contentMode` (`scaleToFill`, `scaleAspectFit`, `scaleAspectFill`, `center`) | |
 | `button` | `title`, `titleColor`, `image`, `isEnabled` | `onTap` |
 | `textfield` | `text`, `placeholder`, `font`, `textColor`, `textAlignment`, `keyboardType` (`default`, `emailAddress`, `numberPad`, `decimalPad`, `phonePad`, `URL`), `returnKeyType` (`default`, `go`, `next`, `done`, `search`, `send`), `isSecureTextEntry`, `isEnabled` | `onChange`, `onReturn` |
@@ -151,6 +151,8 @@ A renderer has these components. An app can register more, which its manifest li
 
 - The containers are `vstack`, `hstack`, `vscroll` and `hscroll`. Children of another component are ignored and reported as `unexpectedChildren`.
 - `label` shows at most `numberOfLines` lines, 0 for no limit, and ends the last one with an ellipsis when the text does not fit.
+- `markdown` on a `label` is shown instead of `text`, which a renderer of an earlier minor version shows instead. It is inline Markdown as CommonMark with the GitHub strikethrough reads it: `*` or `_` for italic, `**` or `__` for bold, `~~` or `~` for strikethrough, `` ` `` for code, which is monospaced and not parsed further, and `\` to escape a marker. HTML entities are decoded. A link or an image shows its text, and cannot be tapped. Everything else stays as written: headings, lists, quotes and other block syntax, line breaks and spaces, HTML tags and bare URLs. The text takes the label's font and color; bold and italic are those of its font, and code a monospaced font of its size. The [shared cases](cases/markdown.json) pin the edge cases.
+- `lineHeight` on a `label` is the height of every line, a length, with the text centered in it. It grows with the text size, as fonts do.
 - `image` shows the image at `url`, downloaded by the app's image loader, and `image`, the name of an image the app has, until the URL's image has loaded. On iOS, a name is looked up in the app's assets, then among the SF Symbols; names will become tokens that each platform maps, since Android has no SF Symbols.
 - `button` is a borderless system button with a title, an image, or both.
 - `textfield` has a rounded border; `isSecureTextEntry` hides what is typed.
@@ -162,6 +164,8 @@ A renderer has these components. An app can register more, which its manifest li
 | `vscroll` / `hscroll` | `Column` with `verticalScroll` / `Row` with `horizontalScroll` |
 | `spacer`, `minLength` | `Spacer` with `weight`; `widthIn` / `heightIn` for the minimum |
 | `label`, `numberOfLines` | `Text`, `maxLines` (0 for no limit), ellipsis on overflow |
+| `markdown` | an `AnnotatedString` with `SpanStyle`s (`FontWeight.Bold`, `FontStyle.Italic`, `TextDecoration.LineThrough`, `FontFamily.Monospace`) from an inline parser of the renderer's own |
+| `lineHeight` | `TextStyle.lineHeight` in sp, with `LineHeightStyle(Alignment.Center, Trim.None)` |
 | `image`, `contentMode` | `Image`; `scaleToFill` / `scaleAspectFit` / `scaleAspectFill` / `center` → `ContentScale.FillBounds` / `Fit` / `Crop` / `None` |
 | `button` | `TextButton`, with an `Icon` for `image` |
 | `textfield`, `isSecureTextEntry` | `OutlinedTextField`, `PasswordVisualTransformation` |
@@ -352,7 +356,7 @@ An app keeps the release of the renderer it was built with for a long time, so a
 | 2 | `overlay`; the `grid` layout; `highlight` |
 | 3 | `onSuccess` and `onFailure`; patches |
 | 4 | `more`; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
-| 5 | `tracking` |
+| 5 | `tracking`; `markdown` and `lineHeight` on `label` |
 
 ## The manifest
 

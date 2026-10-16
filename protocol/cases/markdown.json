@@ -1,0 +1,41 @@
+{
+  "cases": [
+    { "name": "Strong text is bold and ~~ strikes through",
+      "markdown": "**Now ¥99** ~~¥129~~",
+      "runs": [ { "text": "Now ¥99", "styles": ["bold"] }, { "text": " " }, { "text": "¥129", "styles": ["strikethrough"] } ] },
+    { "name": "Emphasis is italic, with * or _, and the two nest",
+      "markdown": "*a* _b_ ***c*** __d__ **bold *both* bold**",
+      "runs": [
+        { "text": "a", "styles": ["italic"] }, { "text": " " }, { "text": "b", "styles": ["italic"] }, { "text": " " },
+        { "text": "c", "styles": ["bold", "italic"] }, { "text": " " }, { "text": "d", "styles": ["bold"] }, { "text": " " },
+        { "text": "bold ", "styles": ["bold"] }, { "text": "both", "styles": ["bold", "italic"] }, { "text": " bold", "styles": ["bold"] }
+      ] },
+    { "name": "A single ~ strikes through too",
+      "markdown": "~gone~",
+      "runs": [ { "text": "gone", "styles": ["strikethrough"] } ] },
+    { "name": "Underscores inside a word and an unclosed marker stay as written",
+      "markdown": "snake_case_name **unclosed",
+      "runs": [ { "text": "snake_case_name **unclosed" } ] },
+    { "name": "Asterisks between digits are emphasis",
+      "markdown": "2*3*4",
+      "runs": [ { "text": "2" }, { "text": "3", "styles": ["italic"] }, { "text": "4" } ] },
+    { "name": "A backslash escapes a marker",
+      "markdown": "\\*not\\* emphasis",
+      "runs": [ { "text": "*not* emphasis" } ] },
+    { "name": "Code is monospaced and its content is not parsed",
+      "markdown": "`a *b*` c",
+      "runs": [ { "text": "a *b*", "styles": ["code"] }, { "text": " c" } ] },
+    { "name": "A link and an image show their text",
+      "markdown": "[link](https://example.com) and ![picture](https://example.com/a.png)",
+      "runs": [ { "text": "link and picture" } ] },
+    { "name": "Block syntax, line breaks and spaces stay as written",
+      "markdown": "# Heading\n- item\n1. one\nline  two",
+      "runs": [ { "text": "# Heading\n- item\n1. one\nline  two" } ] },
+    { "name": "HTML tags stay as written and entities are decoded",
+      "markdown": "<b>html</b> &amp; &copy;",
+      "runs": [ { "text": "<b>html</b> & ©" } ] },
+    { "name": "A bare URL is text",
+      "markdown": "https://example.com",
+      "runs": [ { "text": "https://example.com" } ] }
+  ]
+}

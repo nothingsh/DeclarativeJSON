@@ -290,6 +290,14 @@
           "reference" : true,
           "type" : "font"
         },
+        "lineHeight" : {
+          "reference" : true,
+          "type" : "number"
+        },
+        "markdown" : {
+          "reference" : true,
+          "type" : "string"
+        },
         "numberOfLines" : {
           "reference" : true,
           "type" : "integer"

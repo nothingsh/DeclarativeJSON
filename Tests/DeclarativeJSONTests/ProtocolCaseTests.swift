@@ -225,6 +225,56 @@ final class ProtocolCaseTests: XCTestCase {
         assertIssues(issues, expect["issues"], name)
     }
 
+    // MARK: - Markdown
+
+    /// The runs of a label's text with their styles, read from its fonts and
+    /// attributes; neighbors of the same styles are one run.
+    private func runs(_ label: UILabel) -> [(text: String, styles: Set<String>)] {
+        guard let text = label.attributedText else { return [] }
+        var runs: [(text: String, styles: Set<String>)] = []
+        text.enumerateAttributes(in: NSRange(location: 0, length: text.length)) { attributes, range, _ in
+            var styles: Set<String> = []
+            let traits = (attributes[.font] as? UIFont)?.fontDescriptor.symbolicTraits ?? []
+            if traits.contains(.traitBold) { styles.insert("bold") }
+            if traits.contains(.traitItalic) { styles.insert("italic") }
+            if traits.contains(.traitMonoSpace) { styles.insert("code") }
+            if attributes[.strikethroughStyle] != nil { styles.insert("strikethrough") }
+            let piece = (text.string as NSString).substring(with: range)
+            if let last = runs.last, last.styles == styles {
+                runs[runs.count - 1].text += piece
+            } else {
+                runs.append((piece, styles))
+            }
+        }
+        return runs
+    }
+
+    func testMarkdownCases() throws {
+        for fields in try cases("markdown") {
+            let name = name(fields)
+            var nodeIssues: [Issue] = []
+            let node = try XCTUnwrap(Node(
+                .object(["type": .string("label"), "markdown": fields["markdown"] ?? .null]), path: "t", issues: &nodeIssues
+            ))
+            let builder = NodeBuilder(
+                components: .standard, actions: .standard, data: .init([:]), target: { nil }, report: { _ in }
+            )
+            let label = try XCTUnwrap(builder.build(node, path: "t") as? UILabel, name)
+            guard case .array(let expected)? = fields["runs"] else { return XCTFail("\(name): no runs") }
+            let written: [(text: String, styles: Set<String>)] = expected.compactMap { run in
+                guard case .object(let object) = run, case .string(let text)? = object["text"] else { return nil }
+                var styles: Set<String> = []
+                if case .array(let names)? = object["styles"] {
+                    for case .string(let style) in names { styles.insert(style) }
+                }
+                return (text, styles)
+            }
+            let actual = runs(label)
+            XCTAssertEqual(actual.map(\.text), written.map(\.text), "\(name): text")
+            XCTAssertEqual(actual.map(\.styles), written.map(\.styles), "\(name): styles")
+        }
+    }
+
     // MARK: - Patches
 
     func testPatchCases() throws {
