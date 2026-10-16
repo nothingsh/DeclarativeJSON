@@ -8,8 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- Loading more: a section's `more`, which the library hands to `DocumentViewController.onLoadMore` when the user nears the end of the section, and the patch operation `appendItems`, which adds the next items and replaces `more`. A list or grid section shows a spinner while it loads, and a button that tries again after `showLoadMoreFailure(in:)`.
+- Loading more: a section's `more`, which the library hands to `DocumentViewController.onLoadMore` when the user nears the end of the section, and the patch operation `appendItems`, which adds the next items and replaces `more`. A list or grid section shows a spinner while it loads, and a button that tries again after `showLoadMoreFailure(in:)`; `makeLoadMoreView` replaces them with a `LoadMoreView` of the app's.
 - `DocumentViewController.scrollViewDelegate`, which gets the collection view's scroll view callbacks.
+- Page states: `DocumentViewController` can be created without a document and shows `loadingView` until `setDocument`; `showLoading()` and `showFailure(retry:)` show `loadingView` and `failureView` in place of the sections, and `retry()` tries again. A page without items or `more` shows `emptyView`. Each of the three views can be replaced.
+- `DocumentViewController.onRefresh`, which adds a refresh control and calls the app when the user pulls down.
 - `DocumentVersion.minor` 4, for `more` and `appendItems`.
 
 ### Changed

@@ -236,7 +236,7 @@ actions.register(ActionSpec("like", parameters: ["id": PropertySpec(.string)])) 
 
 ## 页面
 
-`DocumentViewController` 在 collection view 里显示文档。页面是 collection view 的 delegate 和 data source；`collectionView` 的其余部分可以由你配置，例如加上下拉刷新。要收到滚动回调，设置 `scrollViewDelegate`。
+`DocumentViewController` 在 collection view 里显示文档。页面是 collection view 的 delegate 和 data source；`collectionView` 的其余部分可以由你配置，例如内容的 inset。要收到滚动回调，设置 `scrollViewDelegate`。
 
 每个 cell 第一次显示时按模板建出视图并保留；显示另一个条目时只把该条目的数据发给绑定。`set` 和 `toggle` 修改的是页面持有的条目数据，所以 cell 滚出再滚回时改动仍在，cell 也会按新内容调整高度。
 
@@ -294,7 +294,46 @@ controller.onLoadMore = { [weak controller] section, more in
 }
 ```
 
-在此之前，list 或 grid 的 section 在条目下方显示转圈，页面也不再为这个 section 发起加载。调用 `showLoadMoreFailure(in:)` 后改为显示重试按钮，滚回 section 末尾也会重试。carousel 两者都不显示，滚到接近末尾时发起加载。追加、替换或插入这个 section 的 patch，以及 `setDocument`，结束加载。0.5.0 之前的版本忽略 `more`，跳过 `appendItems`。
+在此之前，list 或 grid 的 section 在条目下方显示转圈，页面也不再为这个 section 发起加载。调用 `showLoadMoreFailure(in:)` 后改为显示重试按钮，滚回 section 末尾也会重试。carousel 两者都不显示，滚到接近末尾时发起加载。追加、替换或插入这个 section 的 patch，以及 `setDocument`，结束加载。
+
+转圈和重试按钮（VoiceOver 标签是英文）是默认视图。要显示你自己的视图，比如本地化的文字，把 `makeLoadMoreView` 设为创建一个遵循 `LoadMoreView` 的 `UIView`：页面调用它的 `showLoading()`，以及 `showFailure(retry:)` 并传入一个闭包，供你的按钮调用。它用 Auto Layout 决定自己的大小，页面会把它复用到其他 section。
+
+```swift
+controller.makeLoadMoreView = { MyLoadMoreView() }
+```
+
+0.5.0 之前的版本忽略 `more`，跳过 `appendItems`。
+
+### 加载中、失败与刷新
+
+不带文档创建的页面显示 `loadingView`，直到 `setDocument`。`showLoading()` 再次用它代替 section 显示；`showFailure(retry:)` 显示 `failureView`，其中的按钮调用 `retry()`：它重新显示 `loadingView` 并调用你的闭包。`setDocument` 和 `apply` 重新显示 section。页面没有条目、也没有带 `more` 的 section 时，显示 `emptyView`。
+
+设置 `onRefresh` 会加上下拉刷新控件。用户下拉时页面调用它，并传入一个闭包，做完后调用：
+
+```swift
+let controller = DocumentViewController(actions: actions)   // 显示 loadingView
+func load() {
+    Task {
+        do {
+            controller.setDocument(try DocumentDecoder().decode(try await api.page()))
+        } catch {
+            controller.showFailure { load() }
+        }
+    }
+}
+load()
+
+controller.onRefresh = { done in
+    Task {
+        if let data = try? await api.page(), let document = try? DocumentDecoder().decode(data) {
+            controller.setDocument(document)
+        }
+        done()
+    }
+}
+```
+
+这些视图显示在 section 后面、铺满 collection view，所以空页面或失败的页面也能下拉。默认的视图是转圈和英文提示；把 `loadingView`、`failureView`、`emptyView` 换成你自己的，例如页面的骨架屏或本地化的文字，你的失败视图要调用 `retry()`。下拉刷新失败时不需要 `showFailure`：调用 `done`，页面保留当前显示的内容。
 
 ## 自定义组件
 

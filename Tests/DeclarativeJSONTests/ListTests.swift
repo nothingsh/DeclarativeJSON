@@ -395,6 +395,10 @@ final class ListTests: XCTestCase {
         ) as? LoadMoreFooter
     }
 
+    private func defaultFooter(_ controller: DocumentViewController, section: Int = 0) -> DefaultLoadMoreView? {
+        footer(controller, section: section)?.content as? DefaultLoadMoreView
+    }
+
     func testScrollingNearTheEndOfASectionWithMoreAsksForItsNextItemsOnce() throws {
         let items = (0..<30).map { #"{ "id": "\#($0)", "template": "row", "data": { "title": "Item \#($0)" } }"# }
         let controller = try show("""
@@ -429,7 +433,7 @@ final class ListTests: XCTestCase {
 
         XCTAssertEqual(requests.map(\.0), ["feed"])
         XCTAssertEqual(requests.map(\.1), [.string("page2")])
-        XCTAssertEqual(footer(controller)?.spinner.isAnimating, true)
+        XCTAssertEqual(defaultFooter(controller)?.spinner.isAnimating, true)
         XCTAssertEqual(issues, [])
     }
 
@@ -445,7 +449,7 @@ final class ListTests: XCTestCase {
         wait(for: [asked], timeout: 1)
 
         controller.showLoadMoreFailure(in: "feed")
-        let shown = try XCTUnwrap(footer(controller))
+        let shown = try XCTUnwrap(defaultFooter(controller))
         XCTAssertFalse(shown.retryButton.isHidden)
         XCTAssertFalse(shown.spinner.isAnimating)
         asked = expectation(description: "asked for page 2 again")
@@ -505,6 +509,104 @@ final class ListTests: XCTestCase {
         controller.collectionView.contentOffset.y = 100
 
         XCTAssertEqual(recorder.offsets, [100])
+    }
+
+    func testAPageWithoutADocumentShowsLoadingAndAFailureRetriesUntilADocumentShows() throws {
+        let controller = DocumentViewController()
+        controller.loadViewIfNeeded()
+        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 480)
+        controller.view.layoutIfNeeded()
+        XCTAssertIdentical(controller.collectionView.backgroundView, controller.loadingView)
+
+        var retries = 0
+        controller.showFailure { retries += 1 }
+        XCTAssertIdentical(controller.collectionView.backgroundView, controller.failureView)
+        views(UIButton.self, in: controller.failureView).first?.fire(.touchUpInside)
+        XCTAssertEqual(retries, 1)
+        XCTAssertIdentical(controller.collectionView.backgroundView, controller.loadingView)
+        controller.retry()
+        XCTAssertEqual(retries, 1, "retries only after a failure")
+
+        controller.setDocument(try document("""
+        { "v": 1, "templates": { "row": { "type": "label", "text": "A" } },
+          "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row" } ] } ] }
+        """), animatingDifferences: false)
+        controller.view.layoutIfNeeded()
+        XCTAssertNil(controller.collectionView.backgroundView)
+        XCTAssertEqual(views(UILabel.self, in: cell(controller, 0)).map(\.text), ["A"])
+    }
+
+    func testLoadingHidesTheSectionsAndAPageWithoutItemsOrMoreShowsTheEmptyView() throws {
+        let controller = try show("""
+        { "v": 1, "templates": { "row": { "type": "label", "text": "$title" } },
+          "sections": [ { "id": "s", "items": [ { "id": "a", "template": "row", "data": { "title": "A" } } ] } ] }
+        """)
+        controller.showLoading()
+        XCTAssertEqual(controller.collectionView.numberOfSections, 0)
+        XCTAssertIdentical(controller.collectionView.backgroundView, controller.loadingView)
+
+        // A patch shows the sections again.
+        controller.apply(try patch("""
+        { "v": 1, "operations": [ { "op": "removeItems", "ids": ["a"] } ] }
+        """), animatingDifferences: false)
+        XCTAssertEqual(controller.collectionView.numberOfSections, 1)
+        let empty = UILabel()
+        controller.emptyView = empty
+        XCTAssertIdentical(controller.collectionView.backgroundView, empty)
+
+        controller.setDocument(try document("""
+        { "v": 1, "templates": {}, "sections": [ { "id": "s", "more": "page1", "items": [] } ] }
+        """), animatingDifferences: false)
+        XCTAssertNil(controller.collectionView.backgroundView)
+        XCTAssertEqual(issues, [])
+    }
+
+    func testOnRefreshAddsARefreshControlThatEndsWhenTheAppIsDone() throws {
+        let controller = try show(#"{ "v": 1, "templates": {}, "sections": [] }"#)
+        var done: (() -> Void)?
+        controller.onRefresh = { done = $0 }
+        let control = try XCTUnwrap(controller.collectionView.refreshControl)
+        // iOS 26 refreshes only in a window.
+        let window = UIWindow(frame: controller.view.frame)
+        window.rootViewController = controller
+        window.isHidden = false
+
+        control.beginRefreshing()
+        control.fire(.valueChanged)
+        XCTAssertTrue(control.isRefreshing)
+        try XCTUnwrap(done)()
+        XCTAssertFalse(control.isRefreshing)
+
+        controller.onRefresh = nil
+        XCTAssertNil(controller.collectionView.refreshControl)
+    }
+
+    func testAnAppsLoadMoreViewShowsTheLoadingAndItsRetryAsksAgain() throws {
+        final class Footer: UIView, LoadMoreView {
+            var states: [String] = []
+            var retry: (() -> Void)?
+            func showLoading() { states.append("loading") }
+            func showFailure(retry: @escaping () -> Void) { states.append("failed"); self.retry = retry }
+        }
+        let controller = try show("""
+        { "v": 1,
+          "templates": { "row": { "type": "label", "height": 40 } },
+          "sections": [ { "id": "feed", "more": "page2", "items": [ { "id": "a", "template": "row" } ] } ] }
+        """)
+        var asked = expectation(description: "asked for page 2")
+        controller.onLoadMore = { _, _ in asked.fulfill() }
+        wait(for: [asked], timeout: 1)
+
+        controller.makeLoadMoreView = { Footer() }
+        let made = try XCTUnwrap(footer(controller)?.content as? Footer)
+        controller.showLoadMoreFailure(in: "feed")
+        asked = expectation(description: "asked for page 2 again")
+        try XCTUnwrap(made.retry)()
+        wait(for: [asked], timeout: 1)
+
+        XCTAssertEqual(made.states, ["loading", "failed", "loading"])
+        // The default view it showed before is gone.
+        XCTAssertEqual(footer(controller)?.subviews.map { $0 is Footer }, [true])
     }
 }
 
