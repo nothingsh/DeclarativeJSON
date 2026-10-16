@@ -22,11 +22,12 @@ final class Pages {
             if let url = context.url("url") { UIApplication.shared.open(url) }
         }
         actions.register(ActionSpec("addToCart", parameters: ["name": PropertySpec(.string)])) { [weak self] context in
-            let alert = UIAlertController(
-                title: "Added to the cart", message: context.string("name"), preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "OK", style: .default))
-            self?.navigationController?.present(alert, animated: true)
+            self?.showAlert(title: "Added to the cart", message: context.string("name"))
+        }
+        actions.register(ActionSpec("showProduct", parameters: [
+            "name": PropertySpec(.string), "price": PropertySpec(.string),
+        ])) { [weak self] context in
+            self?.showAlert(title: context.string("name"), message: context.string("price"))
         }
     }
 
@@ -41,5 +42,11 @@ final class Pages {
         controller.title = titles[name]
         controller.onIssue = { print("\(name).json: \($0)") }
         navigationController?.pushViewController(controller, animated: navigationController?.topViewController != nil)
+    }
+
+    private func showAlert(title: String?, message: String?) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        navigationController?.present(alert, animated: true)
     }
 }

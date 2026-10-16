@@ -312,7 +312,7 @@ let manifest = try Manifest(components: components, actions: actions).encoded()
 
 ## Example app
 
-`Example/Example.xcodeproj` is an iOS app that uses this package as a local package. Open it in Xcode and run the `Example` scheme on an iOS Simulator. Every screen, the menu included, is a JSON document in `Example/Example/Documents`; a `navigate` to `example://store` opens `store.json`. `Pages.swift` registers the router, `openURL`, an `addToCart` action and a `rating` component.
+`Example/Example.xcodeproj` is an iOS app that uses this package as a local package. Open it in Xcode and run the `Example` scheme on an iOS Simulator. Every screen, the menu included, is a JSON document in `Example/Example/Documents`; a `navigate` to `example://store` opens `store.json`. `Pages.swift` registers the router, `openURL`, `addToCart` and `showProduct` actions and a `rating` component.
 
 <img src="docs/images/example-store.png" width="300" alt="Store screen"> <img src="docs/images/example-settings.png" width="300" alt="Settings screen">
 

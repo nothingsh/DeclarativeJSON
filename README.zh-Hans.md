@@ -312,7 +312,7 @@ let manifest = try Manifest(components: components, actions: actions).encoded()
 
 ## 示例 App
 
-`Example/Example.xcodeproj` 是一个以本地 package 方式使用本库的 iOS App。用 Xcode 打开，在 iOS 模拟器上运行 `Example` scheme。每个画面，包括菜单，都是 `Example/Example/Documents` 里的一份 JSON 文档；`navigate` 到 `example://store` 会打开 `store.json`。`Pages.swift` 注册了 router、`openURL`、一个 `addToCart` 动作和一个 `rating` 组件。
+`Example/Example.xcodeproj` 是一个以本地 package 方式使用本库的 iOS App。用 Xcode 打开，在 iOS 模拟器上运行 `Example` scheme。每个画面，包括菜单，都是 `Example/Example/Documents` 里的一份 JSON 文档；`navigate` 到 `example://store` 会打开 `store.json`。`Pages.swift` 注册了 router、`openURL`、`addToCart` 与 `showProduct` 两个动作和一个 `rating` 组件。
 
 <img src="docs/images/example-store.png" width="300" alt="商店画面"> <img src="docs/images/example-settings.png" width="300" alt="设置画面">
 
