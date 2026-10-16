@@ -78,11 +78,11 @@ Swift Package Manager。在 `Package.swift` 裡：
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.3.0"))
+    .package(url: "https://github.com/nothingsh/DeclarativeJSON.git", .upToNextMinor(from: "0.4.0"))
 ]
 ```
 
-1.0 之前，0.4.0 這類次版本可能有破壞性變更（見 [CHANGELOG](CHANGELOG.md)），所以這裡只接受 0.3 的修訂版本。DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
+1.0 之前，0.5.0 這類次版本可能有破壞性變更（見 [CHANGELOG](CHANGELOG.md)），所以這裡只接受 0.4 的修訂版本。DeclarativeUIKit 和 DeclarativeCombine 會一併引入。
 
 ## 文件
 
