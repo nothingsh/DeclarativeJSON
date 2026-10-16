@@ -66,6 +66,14 @@ private struct Overlay {
     }
 }
 
+/// The subtrees a `repeat` shows, one per element, kept to show other
+/// elements as the array changes.
+@MainActor
+private final class Repeated {
+    var built: [(view: UIView, data: CurrentValueSubject<[String: JSONValue], Never>)] = []
+    var shown = 0
+}
+
 /// Builds the view of a template node once, binding its `$` properties to the
 /// item data, so that new data updates the view without building it again.
 ///
@@ -77,22 +85,36 @@ struct NodeBuilder {
     let components: ComponentRegistry<UIView>
     let data: CurrentValueSubject<[String: JSONValue], Never>
     let report: (Issue) -> Void
+    private let actions: ActionRegistry
+    private let target: () -> ActionTarget?
     private let runner: ActionRunner
+
+    /// The containers a `repeat` can be a child of: their children are the
+    /// arranged views of a stack.
+    static let repeatContainers: Set<String> = ["vstack", "hstack", "vscroll", "hscroll"]
 
     init(
         components: ComponentRegistry<UIView>,
         actions: ActionRegistry,
         data: CurrentValueSubject<[String: JSONValue], Never>,
         target: @escaping () -> ActionTarget?,
-        report: @escaping (Issue) -> Void
+        report: @escaping (Issue) -> Void,
+        inRepeat: Bool = false
     ) {
         self.components = components
         self.data = data
         self.report = report
-        runner = ActionRunner(actions: actions, target: target, report: report)
+        self.actions = actions
+        self.target = target
+        runner = ActionRunner(actions: actions, target: target, report: report, inRepeat: inRepeat)
     }
 
     func build(_ node: Node, path: String) -> UIView {
+        if node.type == "repeat" {
+            // A child of a container is built by `buildRepeat`.
+            report(Issue(.unexpectedRepeat, at: path))
+            return UIView()
+        }
         guard let component = components.component(node.type) else {
             report(Issue(.unknownType(node.type), at: path))
             return node.fallback.map { build($0, path: "\(path).fallback") } ?? UIView()
@@ -114,8 +136,12 @@ struct NodeBuilder {
 
         var children: [UIView] = []
         if spec.acceptsChildren {
-            children = node.children.enumerated().map { index, child in
-                build(child, path: "\(path).children[\(index)]")
+            children = node.children.enumerated().flatMap { index, child in
+                let childPath = "\(path).children[\(index)]"
+                if child.type == "repeat", Self.repeatContainers.contains(node.type) {
+                    return buildRepeat(child, path: childPath)
+                }
+                return [build(child, path: childPath)]
             }
         } else if !node.children.isEmpty {
             report(Issue(.unexpectedChildren, at: path))
@@ -130,6 +156,109 @@ struct NodeBuilder {
             report: report
         )
         return applyCommonProperties(to: component.build(context), context)
+    }
+
+    /// Builds a `repeat` as the views it puts among its container's children:
+    /// a hidden marker, which takes no space in a stack, then a subtree of
+    /// `template` for each element of `items`, whose `$` references read the
+    /// element. When the array changes, the subtrees after the marker change
+    /// with it, and a subtree shows another element by its data alone.
+    private func buildRepeat(_ node: Node, path: String) -> [UIView] {
+        let marker = UIView()
+        marker.isHidden = true
+        for name in node.properties.keys.sorted() where name != "items" && name != "template" {
+            report(Issue(.unknownProperty(name), at: path))
+        }
+        if !node.children.isEmpty {
+            report(Issue(.unexpectedChildren, at: path))
+        }
+        let template: Node?
+        switch node.properties["template"] {
+        case .constant(let json)?:
+            var issues: [Issue] = []
+            template = Node(json, path: "\(path).template", issues: &issues)
+            issues.forEach(report)
+        case .reference?:
+            report(Issue(.referenceNotAccepted("template"), at: path))
+            template = nil
+        case nil:
+            report(Issue(.invalidNode, at: "\(path).template"))
+            template = nil
+        }
+        guard let template else { return [marker] }
+        let items: AnyPublisher<JSONValue?, Never>
+        switch node.properties["items"] {
+        case nil:
+            return [marker]
+        case .constant(let json)?:
+            items = Just(json).eraseToAnyPublisher()
+        case .reference(let key)?:
+            items = data.map { $0[key] }.removeDuplicates().eraseToAnyPublisher()
+        }
+
+        let repeated = Repeated()
+        // The subtrees of the first elements, built before the container is.
+        var first: [UIView] = []
+        let templatePath = "\(path).template"
+        marker.onReceive(items) { [self] marker, json in
+            let elements: [[String: JSONValue]]
+            switch json {
+            case nil, .null?: elements = []
+            case .array(let array)?: elements = array.map(Self.elementData)
+            case let value?: elements = [Self.elementData(value)]
+            }
+            let stack = marker.superview as? UIStackView
+            for (index, element) in elements.enumerated() {
+                if index == repeated.built.count {
+                    let data = CurrentValueSubject<[String: JSONValue], Never>(element)
+                    repeated.built.append((buildElement(template, path: templatePath, data: data), data))
+                } else {
+                    repeated.built[index].data.send(element)
+                }
+                if index >= repeated.shown {
+                    let view = repeated.built[index].view
+                    if let stack, let position = stack.arrangedSubviews.firstIndex(of: marker) {
+                        stack.insertArrangedSubview(view, at: position + 1 + index)
+                    } else {
+                        first.append(view)
+                    }
+                }
+            }
+            for entry in repeated.built.dropFirst(elements.count).prefix(max(0, repeated.shown - elements.count)) {
+                entry.view.removeFromSuperview()
+            }
+            repeated.shown = elements.count
+        }
+        return [marker] + first
+    }
+
+    /// An element as the data its subtree reads: an object as it is, and any
+    /// other value as `value`.
+    private static func elementData(_ element: JSONValue) -> [String: JSONValue] {
+        if case .object(let object) = element { return object }
+        return ["value": element]
+    }
+
+    /// Builds the subtree of one element of a `repeat`. Its actions run for
+    /// the item, but read the element's data, which they cannot change.
+    private func buildElement(
+        _ template: Node, path: String, data: CurrentValueSubject<[String: JSONValue], Never>
+    ) -> UIView {
+        let builder = NodeBuilder(
+            components: components,
+            actions: actions,
+            data: data,
+            target: { [target] in
+                guard let item = target() else { return nil }
+                return ActionTarget(
+                    item: item.item, page: item.page, data: { [weak data] in data?.value }, update: { _ in nil },
+                    tasks: item.tasks
+                )
+            },
+            report: report,
+            inRepeat: true
+        )
+        return builder.build(template, path: path)
     }
 
     /// Applies `ComponentSpec.commonProperties`. A view that is not a stack

@@ -104,15 +104,20 @@ final class ActionRunner {
     private let actions: ActionRegistry
     private let target: () -> ActionTarget?
     private let report: (Issue) -> Void
+    /// Whether the views show an element of a `repeat`, whose data `set` and
+    /// `toggle` cannot change.
+    private let inRepeat: Bool
 
     init(
         actions: ActionRegistry,
         target: @escaping () -> ActionTarget?,
-        report: @escaping (Issue) -> Void
+        report: @escaping (Issue) -> Void,
+        inRepeat: Bool = false
     ) {
         self.actions = actions
         self.target = target
         self.report = report
+        self.inRepeat = inRepeat
     }
 
     /// Reads an event's value, an action or a list of actions, and returns
@@ -145,6 +150,10 @@ final class ActionRunner {
         }
         guard let spec = actions.action(name)?.spec else {
             report(Issue(.unknownAction(name), at: path))
+            return nil
+        }
+        if inRepeat, name == ActionSpec.set.name || name == ActionSpec.toggle.name {
+            report(Issue(.unsupportedAction(name), at: path))
             return nil
         }
         // Only an asynchronous action takes them; another reports them as unknown.

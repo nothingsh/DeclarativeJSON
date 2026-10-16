@@ -154,6 +154,15 @@ dependencies: [
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
+- `repeat` 放在 `vstack`、`hstack`、`vscroll` 或 `hscroll` 里，按 `items`（数组或指向数组的引用）的每个元素，把 `template` 复制一份放进容器的子节点之间，所以各份跟着容器的间距与对齐：
+  ```json
+  { "type": "hstack", "spacing": 4, "children": [
+    { "type": "label", "text": "Tags:" },
+    { "type": "repeat", "items": "$tags",
+      "template": { "type": "label", "text": "$value", "padding": 4, "background": "secondarySystemFill", "cornerRadius": 4 } }
+  ]}
+  ```
+  条目数据里有 `"tags": ["New", "Free shipping"]` 时显示两个标签，数组变了就显示相应的个数。模板里的 `$` 引用读元素而不是条目：元素是对象时读它的键，其他元素用 `$value`。模板需要的条目数据，请放进元素里。模板里的动作照常执行，参数从元素读取，但 `set` 与 `toggle` 不能修改元素，会被移除。`repeat` 只接受 `items` 和常量 `template`；0.6.0 之前的版本改为显示它的 `fallback`。
 - `label` 的 `markdown` 用行内 Markdown 代替 `text` 显示：`**粗体**`、`*斜体*`、`~~删除线~~` 和 `` `代码` ``，用 label 自己的字体与颜色。链接和图片只显示文字，不能点；标题、列表等块语法和换行按原样显示。为 0.6.0 之前的版本保留纯文本的 `text`，它们会忽略 `markdown`：
   ```json
   { "type": "label", "text": "Now ¥99, was ¥129", "markdown": "**Now ¥99** ~~¥129~~" }
@@ -397,6 +406,7 @@ URL 变化时，视图取消之前的加载并忽略它的结果。
 - 类型不对的值按缺失处理；
 - 不是带 `type` 的对象的节点、未知或写错的动作、重复的 `id`、模板不存在的条目或 header 会被去掉；
 - 未知的 `layout` 按列表显示；
+- stack 之外的 `repeat`，以及 `repeat` 里的 `set` 与 `toggle`，会被移除；
 - patch 里未知的操作、页面没有的 `id`，以及插入处页面已有的 `id`，会被跳过。
 
 每个 `Issue` 都写明位置，例如 `templates.product.children[2]`；patch 的问题写 patch 里的位置，例如 `operations[1].items[0]`。patch 的问题每次应用都会上报。
@@ -412,7 +422,7 @@ App 停留在构建它时的版本，所以后端写的文档也要让旧版本�
 | 2 | 0.3.0 | `overlay`；`grid` 布局；`vstack` 与 `hstack` 的 `highlight` |
 | 3 | 0.4.0 | 异步动作的 `onSuccess` 与 `onFailure`；patch |
 | 4 | 0.5.0 | section 的 `more`；`appendItems`；颜色 `systemMint`、`systemCyan`、`systemBrown` |
-| 5 | 0.6.0 | 条目的 `tracking`；`label` 的 `markdown` 与 `lineHeight` |
+| 5 | 0.6.0 | 条目的 `tracking`；`label` 的 `markdown` 与 `lineHeight`；`repeat` |
 
 请求时带上它，后端就只写 App 读得懂的内容：
 
@@ -428,7 +438,7 @@ request.setValue("\(DocumentVersion.current).\(DocumentVersion.minor)", forHTTPH
 
 ## 清单
 
-[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，patch 的操作，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
+[`manifest.json`](manifest.json) 列出内置组件及其属性、每个属性的类型和是否接受引用、所有组件共有的属性，以及内置动作、它们的参数和是否异步，patch 的操作、`repeat` 的属性，还有它描述的版本 `v` 与 `minor`。后端的代码生成器可以读取它，检查自己写出的文档。加上你自己的组件和动作：
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

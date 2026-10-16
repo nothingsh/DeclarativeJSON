@@ -30,6 +30,8 @@ An issue is written as an object with its `kind`, where it is, `at`, and the val
 | `duplicateID`, `unknownID` | `id` |
 | `unknownTemplate` | `template` |
 | `unknownOperation` | `operation` |
+| `unexpectedRepeat` | — |
+| `unsupportedAction` | `action` |
 
 ```json
 { "kind": "typeMismatch", "property": "numberOfLines", "expected": { "type": "integer" }, "at": "templates.row" }

@@ -154,6 +154,15 @@ Every component also takes `width`, `height`, `aspectRatio`, `padding`, `backgro
                  "content": { "type": "label", "text": "$badge", "font": "caption2", "padding": 4,
                               "background": "systemRed", "textColor": "white", "cornerRadius": 4 } } }
   ```
+- `repeat`, a child of a `vstack`, `hstack`, `vscroll` or `hscroll`, puts a copy of its `template` among the container's children for each element of `items`, an array or a reference to one, so the copies take the container's spacing and alignment:
+  ```json
+  { "type": "hstack", "spacing": 4, "children": [
+    { "type": "label", "text": "Tags:" },
+    { "type": "repeat", "items": "$tags",
+      "template": { "type": "label", "text": "$value", "padding": 4, "background": "secondarySystemFill", "cornerRadius": 4 } }
+  ]}
+  ```
+  With `"tags": ["New", "Free shipping"]` in the item's data this shows two tags, and as many as the array has when it changes. In the template, `$` references read the element, not the item: a key of an element that is an object, or `$value` for any other element. Put what the template needs from the item into the elements. Actions in it run, with parameters read from the element, but `set` and `toggle` cannot change an element and are left out. A `repeat` takes only `items` and `template`, a constant; releases before 0.6.0 show its `fallback` instead.
 - `markdown` on a `label` shows inline Markdown instead of `text`: `**bold**`, `*italic*`, `~~strikethrough~~` and `` `code` ``, in the label's font and color. A link or an image shows its text and cannot be tapped; headings, lists and other block syntax, and line breaks, stay as written. Keep `text` as plain text for releases before 0.6.0, which ignore `markdown`:
   ```json
   { "type": "label", "text": "Now ¥99, was ¥129", "markdown": "**Now ¥99** ~~¥129~~" }
@@ -397,6 +406,7 @@ A document fails to decode only when it is not JSON, has another version, or get
 - a value of the wrong type is treated as missing;
 - a node that is not an object with a `type`, an unknown or malformed action, a duplicate `id`, and an item or header with an unknown template are left out;
 - an unknown `layout` is a list;
+- a `repeat` outside a stack, and `set` or `toggle` in a `repeat`, are left out;
 - in a patch, an unknown operation, and an `id` the page does not have, or has already where the patch inserts it, are skipped.
 
 Each `Issue` says where it is, as in `templates.product.children[2]`, or `operations[1].items[0]` for a patch. The issues of a patch are reported each time it is applied.
@@ -412,7 +422,7 @@ An app stays at the release it was built with, so a backend writes documents tha
 | 2 | 0.3.0 | `overlay`; the `grid` layout; `highlight` on `vstack` and `hstack` |
 | 3 | 0.4.0 | `onSuccess` and `onFailure` on asynchronous actions; patches |
 | 4 | 0.5.0 | `more` on a section; `appendItems`; the colors `systemMint`, `systemCyan` and `systemBrown` |
-| 5 | 0.6.0 | `tracking` on an item; `markdown` and `lineHeight` on `label` |
+| 5 | 0.6.0 | `tracking` on an item; `markdown` and `lineHeight` on `label`; `repeat` |
 
 Send it with your requests, so that the backend writes what the app reads:
 
@@ -428,7 +438,7 @@ A node can also carry a `fallback`, a node shown instead when the app does not k
 
 ## The manifest
 
-[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, the operations of a patch, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
+[`manifest.json`](manifest.json) lists the built-in components with their properties, the type of each and whether it takes a reference, the properties every component takes, and the built-in actions with their parameters and whether each is asynchronous, the operations of a patch, the properties of `repeat`, and the version it describes, `v` and `minor`. A code generator on the backend can read it to type-check the documents it writes. With your own components and actions:
 
 ```swift
 let manifest = try Manifest(components: components, actions: actions).encoded()

@@ -542,5 +542,20 @@
     "replaceItems",
     "replaceSections"
   ],
+  "repeat" : {
+    "properties" : {
+      "items" : {
+        "element" : {
+          "type" : "any"
+        },
+        "reference" : true,
+        "type" : "list"
+      },
+      "template" : {
+        "reference" : false,
+        "type" : "node"
+      }
+    }
+  },
   "v" : 1
 }
