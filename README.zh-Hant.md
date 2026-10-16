@@ -69,7 +69,7 @@ controller.onIssue = { print($0) }
 
 ## 需求
 
-- iOS 14+
+- iOS 15+
 - Swift 5.9+
 
 ## 安裝

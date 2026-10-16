@@ -2,7 +2,7 @@ name: Example
 options:
   bundleIdPrefix: dev.declarativejson
   deploymentTarget:
-    iOS: "14.0"
+    iOS: "15.0"
   developmentLanguage: en
 packages:
   DeclarativeJSON:

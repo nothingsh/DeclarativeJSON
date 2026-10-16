@@ -12,6 +12,10 @@ All notable changes to this project are documented here. The format follows
 - `fallback` on any node: a node shown instead when the app does not know the node's type, such as a component of a later release.
 - `DocumentVersion.minor`, and `minor` in the manifest: which additions to version 1 of the format a release reads, for the app to send with its requests. This release reads 1.
 
+### Changed
+
+- Requires iOS 15, the earliest version Xcode 26 builds for and has simulators of. iOS 15 runs on every iPhone that runs iOS 14.
+
 ### Fixed
 
 - `ActionContext.update` called after the handler returned, such as when a request finishes, changes the item the action ran for. It used to change the item that the cell showed by then, and to undo the changes made to the item in between.
