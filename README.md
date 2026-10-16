@@ -363,7 +363,7 @@ controller.onImpression = { item in
 }
 ```
 
-The page calls `onImpression` once for each item with `tracking` the user has seen: at least half of it on screen for half a second without a break, while the page is in a window. Set `impressionFraction` and `impressionDuration` to count differently. An item is reported once per document; after `setDocument`, again, and a patch that replaces an item does not report it again. Actions see `tracking` too, in `context.item`, for counting taps with an action of your own. Releases before 0.6.0 ignore `tracking`.
+The page calls `onImpression` once for each item with `tracking` the user has seen: at least half of it on screen for half a second without a break, while the page is in a window and its scene is not in the background; going to the background starts the timing again. Set `impressionFraction` and `impressionDuration` to count differently. An item is reported once per document; after `setDocument`, again, and a patch that replaces an item does not report it again. Actions see `tracking` too, in `context.item`, for counting taps with an action of your own. Releases before 0.6.0 ignore `tracking`.
 
 ## Your own components
 

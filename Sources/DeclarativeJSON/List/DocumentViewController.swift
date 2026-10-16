@@ -87,8 +87,9 @@ public final class DocumentViewController: UIViewController {
 
     /// Called once for each item with `tracking` that the user has seen: at
     /// least `impressionFraction` of it showed for `impressionDuration`
-    /// without a break, while the page was in a window. The page reports an
-    /// item once per document; after `setDocument`, again.
+    /// without a break, while the page was in a window of a scene that was
+    /// not in the background. The page reports an item once per document;
+    /// after `setDocument`, again.
     public var onImpression: ((ItemInfo) -> Void)? {
         didSet { updateImpressions() }
     }
@@ -142,6 +143,9 @@ public final class DocumentViewController: UIViewController {
     /// the device's time does not move.
     private var shownSince: [String: TimeInterval] = [:]
     private var isImpressionUpdatePending = false
+    /// Whether the page's scene is in the background, where nothing it shows
+    /// is seen. Tests replace it.
+    var isInBackground: () -> Bool = { false }
     /// How many times `makeLoadMoreView` was replaced, for the footers to
     /// tell whether their view is current.
     private var loadMoreViewGeneration = 0
@@ -161,6 +165,10 @@ public final class DocumentViewController: UIViewController {
         self.actions = actions
         super.init(nibName: nil, bundle: nil)
         failureView = PageStateViews.failure { [weak self] in self?.retry() }
+        isInBackground = { [weak self] in self?.viewIfLoaded?.window?.windowScene?.activationState == .background }
+        for name in [UIScene.didEnterBackgroundNotification, UIScene.willEnterForegroundNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(sceneChangedState), name: name, object: nil)
+        }
         if document == nil {
             state = .loading
         }
@@ -268,6 +276,12 @@ public final class DocumentViewController: UIViewController {
     public override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         shownSince = [:]
+    }
+
+    /// Stops timing impressions when a scene goes to the background, and
+    /// starts again when it comes back.
+    @objc private func sceneChangedState() {
+        updateImpressions()
     }
 
     /// Shows `loadingView` in place of the sections, such as while the page
@@ -551,7 +565,7 @@ public final class DocumentViewController: UIViewController {
     /// Starts timing the items that now show enough, stops timing those that
     /// no longer do, and reports those shown for long enough.
     private func updateImpressions() {
-        guard onImpression != nil, isViewLoaded, view.window != nil, let dataSource else {
+        guard onImpression != nil, isViewLoaded, view.window != nil, !isInBackground(), let dataSource else {
             shownSince = [:]
             return
         }

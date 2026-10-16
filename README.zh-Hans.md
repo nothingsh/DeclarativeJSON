@@ -363,7 +363,7 @@ controller.onImpression = { item in
 }
 ```
 
-用户看到一个带 `tracking` 的条目时，页面调用一次 `onImpression`：页面在 window 里时，条目至少一半在屏幕上、连续半秒。要换口径，设置 `impressionFraction` 和 `impressionDuration`。同一份文档里每个条目只报一次；`setDocument` 之后重新计，替换条目的 patch 不会让它再报一次。动作也能在 `context.item` 里读到 `tracking`，可以用你自己的动作统计点击。0.6.0 之前的版本忽略 `tracking`。
+用户看到一个带 `tracking` 的条目时，页面调用一次 `onImpression`：页面在 window 里、且所在 scene 不在后台时，条目至少一半在屏幕上、连续半秒；进入后台会让计时重新开始。要换口径，设置 `impressionFraction` 和 `impressionDuration`。同一份文档里每个条目只报一次；`setDocument` 之后重新计，替换条目的 patch 不会让它再报一次。动作也能在 `context.item` 里读到 `tracking`，可以用你自己的动作统计点击。0.6.0 之前的版本忽略 `tracking`。
 
 ## 自定义组件
 

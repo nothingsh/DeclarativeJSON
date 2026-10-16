@@ -297,7 +297,7 @@ When a section has `more` and the user scrolls to within five items of its end, 
 
 ### Impressions
 
-The renderer tells the app once for each item with `tracking` that the user has seen, with the item's `id`, section, template and `tracking`: at least half of the item on screen for half a second without a break, while the page is showing. The app can change both numbers. An item is reported once per document, again after a new document; a patch that replaces an item does not report it again. A carousel counts what shows of it, too. Actions get the item's `tracking` as well, so that an app action can count taps.
+The renderer tells the app once for each item with `tracking` that the user has seen, with the item's `id`, section, template and `tracking`: at least half of the item on screen for half a second without a break, while the page is showing and the app is not in the background, which starts the timing again. The app can change both numbers. An item is reported once per document, again after a new document; a patch that replaces an item does not report it again. A carousel counts what shows of it, too. Actions get the item's `tracking` as well, so that an app action can count taps.
 
 ### States of the page
 
